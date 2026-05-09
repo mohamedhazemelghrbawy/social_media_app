@@ -1,5 +1,4 @@
 import type { Request, Response, NextFunction } from "express";
-import { ISignUpType } from "./auth.dto";
 import { ProviderEnum } from "../../common/enum/user.enum";
 import { AppError } from "../../common/utilts/global-error-handler";
 import { successResponse } from "../../common/utilts/response.success";
@@ -13,11 +12,7 @@ import { emailTemplate } from "../../common/utilts/email/email.template";
 import redisService from "../../common/services/redis.service";
 import { randomUUID } from "crypto";
 import { generateToken } from "../../common/utilts/token.service";
-import {
-  GOOGLE_CLIENT_ID,
-  REFRESH_SECRET_KEY,
-  SECRET_KEY,
-} from "../../config/config.service";
+import { REFRESH_SECRET_KEY, SECRET_KEY } from "../../config/config.service";
 import { S3Service } from "../../common/services/s3.service";
 import { sendOtp } from "../../common/utilts/email/otp.resend";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
@@ -27,6 +22,8 @@ import NotificationService from "../../common/services/notification.service";
 import postModel from "../../DB/models/post.model.js";
 import PostRepository from "../../DB/repository/post.repository.js";
 import { Types } from "mongoose";
+import CommentModel from "../../DB/models/comment.model.js";
+import StoryModel from "../../DB/models/story.model.js";
 // import { emit } from "cluster";
 class UserService {
   private readonly _userModel = new UserRepository();
@@ -55,7 +52,6 @@ class UserService {
 
     const type = "signupOtp";
 
-    // eventEmitter.on("confirmed", async ({ email, userName, otp }) => {
     await sendEmail({
       to: email,
       subject: "Email Confirmation",
@@ -96,7 +92,7 @@ class UserService {
 
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: GOOGLE_CLIENT_ID as string,
+      // audience: GOOGLE_CLIENT_ID as string,
     });
     const payload: TokenPayload | undefined = ticket.getPayload();
 
@@ -465,52 +461,56 @@ class UserService {
 
   softDeleteUser = async (req: Request, res: Response, next: NextFunction) => {
     const { userId } = req.params;
+
     const user = await this._userModel.findOneAndUpdate({
       filter: {
         _id: userId,
+        deletedAt: null,
       },
       update: {
         deletedAt: new Date(),
-        deletedBy: req.user?._id!,
+        deletedBy: req.user!._id,
         isDeleted: true,
       },
       options: {
         new: true,
       },
     });
+
     if (!user) {
-      throw new AppError("user not found");
+      throw new AppError("user not found or already deleted");
     }
+
     return successResponse({
       res,
       message: "User soft deleted",
       data: user,
     });
   };
-
   hardDeleteUser = async (req: Request, res: Response, next: NextFunction) => {
     const { userId } = req.params;
 
     const user = await this._userModel.findOne({
-      filter: {
-        _id: userId,
-      },
+      filter: { _id: userId },
     });
+
     if (!user) {
       throw new AppError("user not found");
     }
-    await postModel.deleteMany({
-      createdBy: new Types.ObjectId(userId as string),
-    });
+
+    const id = new Types.ObjectId(userId as any);
+
+    await postModel.deleteMany({ createdBy: id });
+    await CommentModel.deleteMany({ createdBy: id });
+    await StoryModel.deleteMany({ createdBy: id });
+
     await this._userModel.findOneAndDelete({
-      filter: {
-        _id: userId,
-      },
+      filter: { _id: id },
     });
 
     return successResponse({
       res,
-      message: "User hard deleted",
+      message: "User permanently deleted",
     });
   };
 }

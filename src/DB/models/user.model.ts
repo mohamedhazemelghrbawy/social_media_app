@@ -13,6 +13,8 @@ import {
 import { emailTemplate } from "../../common/utilts/email/email.template.js";
 import { Hash } from "../../common/utilts/security/hash.security.js";
 import postModel from "./post.model.js";
+import CommentModel from "./comment.model.js";
+import StoryModel from "./story.model.js";
 
 export interface IUser {
   firstName: string;
@@ -152,7 +154,38 @@ userSchema.post("findOneAndUpdate", async function (doc) {
 
   const userId = doc._id;
 
-  await postModel.updateMany({ createdBy: userId }, { deletedAt: new Date() });
+  const now = new Date();
+  await postModel.updateMany(
+    {
+      createdBy: userId,
+      deletedAt: null,
+    },
+    {
+      deletedAt: now,
+      deletedBy: userId,
+    },
+  );
+
+  await CommentModel.updateMany(
+    {
+      createdBy: userId,
+      deletedAt: null,
+    },
+    {
+      deletedAt: now,
+      deletedBy: userId,
+    },
+  );
+  await StoryModel.updateMany(
+    {
+      createdBy: userId,
+      deletedAt: null,
+    },
+    {
+      deletedAt: now,
+      deletedBy: userId,
+    },
+  );
 });
 
 // userSchema.pre("validate", function (){

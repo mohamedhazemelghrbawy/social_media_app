@@ -74,12 +74,23 @@ const postModel: Model<IPost> =
   (mongoose.models.post as Model<IPost>) ||
   mongoose.model<IPost>("Post", PostSchema);
 
-// PostSchema.post("findOneAndUpdate", async function (doc) {
-//   if (!doc?.deletedAt) return;
+PostSchema.post("findOneAndUpdate", async function (doc) {
+  if (!doc?.deletedAt) return;
 
-//   const postId = doc._id;
+  const postId = doc._id;
 
-//   await postModel.updateMany({ createdBy: userId }, { deletedAt: new Date() });
-// });
+  const commentModel = mongoose.model("Comment");
+
+  await commentModel.updateMany(
+    {
+      postId,
+      deletedAt: null,
+    },
+    {
+      deletedAt: new Date(),
+      deletedBy: doc.deletedBy,
+    },
+  );
+});
 
 export default postModel;

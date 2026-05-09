@@ -12,10 +12,12 @@ import { createPostDTO, updatePostDTO } from "./post.dto.js";
 import PostRepository from "../../DB/repository/post.repository.js";
 import { Availability_Enum } from "../../common/enum/post.enum.js";
 import { PostAvailability } from "../../common/utilts/post.utilts.js";
+import CommentRepository from "../../DB/repository/comment.repository.js";
 
 class PostService {
   private readonly _userRepo = new UserRepository();
   private readonly _postRepo = new PostRepository();
+  private readonly _commentRepo = new CommentRepository();
 
   private readonly _s3service = new S3Service();
   private readonly _redisService = redisService;
@@ -331,6 +333,7 @@ class PostService {
 
   softDeletePost = async (req: Request, res: Response, next: NextFunction) => {
     const { postId } = req.params;
+
     const post = await this._postRepo.findOneAndUpdate({
       filter: {
         _id: postId,
@@ -338,16 +341,17 @@ class PostService {
       },
       update: {
         deletedAt: new Date(),
-        deletedBy: req.user?._id!,
-        isDeleted: true,
+        deletedBy: req.user!._id,
       },
       options: {
         new: true,
       },
     });
+
     if (!post) {
       throw new AppError("post not found or already deleted");
     }
+
     return successResponse({
       res,
       message: "post soft deleted",
@@ -358,18 +362,31 @@ class PostService {
   hardDeletePost = async (req: Request, res: Response, next: NextFunction) => {
     const { postId } = req.params;
 
-    const post = await this._postRepo.findOneAndDelete({
-      filter: {
-        _id: postId,
-      },
+    const post = await this._postRepo.findOne({
+      filter: { _id: postId },
     });
+
     if (!post) {
       throw new AppError("post not found");
     }
 
+    await this._commentRepo.deleteMany({
+      filter: {
+        postId: post._id,
+      },
+    });
+
+    await this._postRepo.findOneAndDelete({
+      filter: { _id: postId },
+    });
+
+    if (post.attachments?.length) {
+      await this._s3service.deleteFiles(post.attachments);
+    }
+
     return successResponse({
       res,
-      message: "post hard deleted",
+      message: "post and related comments deleted successfully",
     });
   };
 }
