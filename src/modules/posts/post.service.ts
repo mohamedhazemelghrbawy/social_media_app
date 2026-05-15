@@ -6,7 +6,7 @@ import redisService from "../../common/services/redis.service.js";
 import { successResponse } from "../../common/utilts/response.success.js";
 import { S3Service } from "../../common/services/s3.service.js";
 import { Store_enum } from "../../common/enum/mutlter.enum.js";
-// import notificationService from "../../common/services/notification.service.js";
+import notificationService from "../../common/services/notification.service.js";
 import { randomUUID } from "node:crypto";
 import { createPostDTO, updatePostDTO } from "./post.dto.js";
 import PostRepository from "../../DB/repository/post.repository.js";
@@ -21,7 +21,7 @@ class PostService {
 
   private readonly _s3service = new S3Service();
   private readonly _redisService = redisService;
-  // private readonly _notificationService = notificationService;
+  private readonly _notificationService = notificationService;
 
   constructor() {}
 
@@ -318,15 +318,15 @@ class PostService {
       post.attachments?.push(...urls);
     }
 
-    // if (fcmTokens?.length) {
-    //   await this._notificationService.sentNotifications({
-    //     tokens: fcmTokens,
-    //     data: {
-    //       title: content || "new post",
-    //       body: `you are mention on new post`,
-    //     },
-    //   });
-    // }
+    if (fcmTokens?.length) {
+      await this._notificationService.sentNotifications({
+        tokens: fcmTokens,
+        data: {
+          title: content || "new post",
+          body: `you are mention on new post`,
+        },
+      });
+    }
 
     if (content) {
       post.content = content;
