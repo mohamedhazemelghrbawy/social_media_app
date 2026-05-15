@@ -18,6 +18,7 @@ import {
   AWS_SECRET_KEY,
 } from "../../config/config.service.js";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { AppError } from "../utilts/global-error-handler.js";
 
 export class S3Service {
   private client: S3Client;
@@ -52,6 +53,9 @@ export class S3Service {
           : fs.createReadStream(file.path),
       ContentType: file.mimetype,
     });
+    if (!command.input.Key) {
+      throw new AppError("fail to upload file");
+    }
     await this.client.send(command);
     return command.input.Key as string;
   }
@@ -68,6 +72,7 @@ export class S3Service {
     ACL?: ObjectCannedACL;
   }): Promise<string> {
     const command = new Upload({
+      //lib storage
       client: this.client,
       params: {
         Bucket: AWS_BUCKET_NAME,
@@ -81,6 +86,9 @@ export class S3Service {
       },
     });
     const result = await command.done();
+    command.on("httpUploadProgress", (progress) => {
+      console.log(progress);
+    });
     return result.Key as string;
   }
   async uploadFiles({

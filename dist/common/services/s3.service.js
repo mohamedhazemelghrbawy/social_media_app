@@ -11,6 +11,7 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const lib_storage_1 = require("@aws-sdk/lib-storage");
 const config_service_js_1 = require("../../config/config.service.js");
 const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
+const global_error_handler_js_1 = require("../utilts/global-error-handler.js");
 class S3Service {
     client;
     constructor() {
@@ -32,11 +33,15 @@ class S3Service {
                 : node_fs_1.default.createReadStream(file.path),
             ContentType: file.mimetype,
         });
+        if (!command.input.Key) {
+            throw new global_error_handler_js_1.AppError("fail to upload file");
+        }
         await this.client.send(command);
         return command.input.Key;
     }
     async uploadLargeFile({ store_type = mutlter_enum_js_1.Store_enum.disk, file, path = "General", ACL = client_s3_1.ObjectCannedACL.private, }) {
         const command = new lib_storage_1.Upload({
+            //lib storage
             client: this.client,
             params: {
                 Bucket: config_service_js_1.AWS_BUCKET_NAME,
@@ -49,6 +54,9 @@ class S3Service {
             },
         });
         const result = await command.done();
+        command.on("httpUploadProgress", (progress) => {
+            console.log(progress);
+        });
         return result.Key;
     }
     async uploadFiles({ store_type = mutlter_enum_js_1.Store_enum.memory, files, path = "General", ACL = client_s3_1.ObjectCannedACL.private, isLarge = false, }) {

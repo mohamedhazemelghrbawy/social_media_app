@@ -53,9 +53,13 @@ authRouter.patch("/update-password", authentication_js_1.authentication, user_se
 authRouter.post("/send-otp-forget-password", user_service_1.default.sendForgetOtp);
 authRouter.post("/forget-password", user_service_1.default.forgetPassword);
 authRouter.post("/logout", authentication_js_1.authentication, user_service_1.default.logout);
-authRouter.post("/upload-file", (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.disk }).single("attachment"), user_service_1.default.uploadfile);
+authRouter.post("/upload-file", (0, multer_cloud_js_1.default)().single("attachment"), user_service_1.default.uploadfile);
 authRouter.post("/upload-large-file", (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.disk }).single("attachment"), user_service_1.default.uploadLargefile);
-authRouter.post("/upload-large-file", (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.disk }).single("attachment"), user_service_1.default.uploadLargefile);
+// authRouter.post(
+//   "/upload-large-file",
+//   multerCloud({ store_type: Store_enum.disk }).single("attachment"),
+//   UserService.uploadLargefile,
+// );
 authRouter.post("/upload-files", (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.disk }).array("attachments"), user_service_1.default.uploadfiles);
 authRouter.post("/upload", authentication_js_1.authentication, 
 // multerCloud({ store_type: Store_enum.disk }).single("attachment"),

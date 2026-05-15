@@ -37,20 +37,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const post_service_1 = __importDefault(require("./post.service"));
-const postValidation = __importStar(require("./post.validation"));
+const comment_service_1 = __importDefault(require("./comment.service"));
 const authentication_1 = require("../../common/middleware/authentication");
+const commentValidation = __importStar(require("./comment.validaton.js"));
 const multer_cloud_js_1 = __importDefault(require("../../common/middleware/multer.cloud.js"));
 const validation_js_1 = require("../../common/middleware/validation.js");
 const mutlter_enum_js_1 = require("../../common/enum/mutlter.enum.js");
-const comment_controller_js_1 = __importDefault(require("../comments/comment.controller.js"));
-const postRouter = (0, express_1.Router)();
-postRouter.use("/:postId/comments{/:commentId,replies}", comment_controller_js_1.default);
-postRouter.post("/", authentication_1.authentication, (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.memory }).array("attachments"), (0, validation_js_1.validation)(postValidation.createPostSchema), post_service_1.default.createPost);
-postRouter.post("/:postId", authentication_1.authentication, (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.memory }).array("attachments"), (0, validation_js_1.validation)(postValidation.updatePostSchema), post_service_1.default.updatePost);
-postRouter.post("/:postId/like", authentication_1.authentication, (0, validation_js_1.validation)(postValidation.likePostSchema), post_service_1.default.likePost);
-postRouter.get("/", authentication_1.authentication, post_service_1.default.getPosts);
-postRouter.get("/post/:postId", authentication_1.authentication, post_service_1.default.getPost);
-postRouter.patch("/soft-delete/:postId", authentication_1.authentication, post_service_1.default.softDeletePost);
-postRouter.delete("/hard-delete/:postId", authentication_1.authentication, post_service_1.default.hardDeletePost);
-exports.default = postRouter;
+const commentRouter = (0, express_1.Router)({ mergeParams: true });
+commentRouter.post("/", authentication_1.authentication, (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.memory }).array("attachments"), (0, validation_js_1.validation)(commentValidation.createCommentSchema), comment_service_1.default.createComment);
+// commentRouter.post(
+//   "/:commentId,replies",
+//   authentication,
+//   multerCloud({ store_type: Store_enum.memory }).array("attachments"),
+//   commentService.createReply,
+// );
+commentRouter.patch("/delete/:commentId", authentication_1.authentication, comment_service_1.default.softDeleteComment);
+commentRouter.delete("/delete/:commentId", authentication_1.authentication, comment_service_1.default.hardDeleteComment);
+exports.default = commentRouter;

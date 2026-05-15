@@ -70,6 +70,12 @@ const PostSchema = new mongoose.Schema<IPost>(
   },
 );
 
+PostSchema.virtual("Comments", {
+  ref: "Comment",
+  localField: "_id",
+  foreignField: "refId",
+});
+
 const postModel: Model<IPost> =
   (mongoose.models.post as Model<IPost>) ||
   mongoose.model<IPost>("Post", PostSchema);

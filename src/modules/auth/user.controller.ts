@@ -45,7 +45,7 @@ authRouter.post("/logout", authentication, UserService.logout);
 
 authRouter.post(
   "/upload-file",
-  multerCloud({ store_type: Store_enum.disk }).single("attachment"),
+  multerCloud().single("attachment"),
   UserService.uploadfile,
 );
 
@@ -55,11 +55,11 @@ authRouter.post(
   UserService.uploadLargefile,
 );
 
-authRouter.post(
-  "/upload-large-file",
-  multerCloud({ store_type: Store_enum.disk }).single("attachment"),
-  UserService.uploadLargefile,
-);
+// authRouter.post(
+//   "/upload-large-file",
+//   multerCloud({ store_type: Store_enum.disk }).single("attachment"),
+//   UserService.uploadLargefile,
+// );
 authRouter.post(
   "/upload-files",
   multerCloud({ store_type: Store_enum.disk }).array("attachments"),

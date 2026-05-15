@@ -11,18 +11,17 @@ const s3_service_js_1 = require("../../common/services/s3.service.js");
 const mutlter_enum_js_1 = require("../../common/enum/mutlter.enum.js");
 const notification_service_js_1 = __importDefault(require("../../common/services/notification.service.js"));
 const node_crypto_1 = require("node:crypto");
-// import { createPostDTO, updatePostDTO } from "./story.dto.js";
-const post_repository_js_1 = __importDefault(require("../../DB/repository/post.repository.js"));
-const post_utilts_js_1 = require("../../common/utilts/post.utilts.js");
-class PostService {
+const post_enum_js_1 = require("../../common/enum/post.enum.js");
+const story_repository_js_1 = __importDefault(require("../../DB/repository/story.repository.js"));
+class StoryService {
     _userRepo = new user_repository_1.default();
-    _postRepo = new post_repository_js_1.default();
+    _storyRepo = new story_repository_js_1.default();
     _s3service = new s3_service_js_1.S3Service();
-    _redisService = redis_service_js_1.default;
+    // private readonly _redisService = redisService;
     _notificationService = notification_service_js_1.default;
     constructor() { }
-    createPost = async (req, res, next) => {
-        const { content, allowComment, availability, tags } = req.body;
+    createStory = async (req, res, next) => {
+        const { content, tags } = req.body;
         let mentions = [];
         let fcmTokens = [];
         if (tags?.length) {
@@ -35,8 +34,11 @@ class PostService {
                 throw new global_error_handler_js_1.AppError("inValid tag id");
             }
             for (const tag of mentionsTags) {
+                if (tag._id.toString() == req.user?._id.toString()) {
+                    throw new global_error_handler_js_1.AppError("you can not tag yourself");
+                }
                 mentions.push(tag._id);
-                (await this._redisService.getFCMs(tag._id)).map((token) => fcmTokens.push(token));
+                (await redis_service_js_1.default.getFCMs(tag._id)).map((token) => fcmTokens.push(token));
             }
         }
         let urls = [];
@@ -44,159 +46,91 @@ class PostService {
         if (req?.files) {
             urls = await this._s3service.uploadFiles({
                 files: req.files,
-                path: `users/${req?.user?._id}/posts/${folderId}`,
+                path: `users/${req?.user?._id}/stories/${folderId}`,
                 store_type: mutlter_enum_js_1.Store_enum.memory,
             });
         }
-        const post = await this._postRepo.create({
+        const story = await this._storyRepo.create({
             attachments: urls,
             content: content,
             createdBy: req?.user?._id,
             tags: mentions,
-            folderId,
-            availability,
-            allowComment,
         });
-        if (!post) {
+        if (!story) {
             await this._s3service.deleteFiles(urls);
-            throw new global_error_handler_js_1.AppError("fail to create post");
+            throw new global_error_handler_js_1.AppError("fail to create story");
         }
         if (fcmTokens?.length) {
             await this._notificationService.sentNotifications({
                 tokens: fcmTokens,
                 data: {
-                    title: `you are mention on new post`,
-                    body: content || "new post",
+                    title: `you are mention on new story`,
+                    body: content || "new story",
                 },
             });
         }
-        (0, response_success_js_1.successResponse)({ res, data: post });
+        (0, response_success_js_1.successResponse)({ res, data: story });
     };
-    getPosts = async (req, res, next) => {
-        const searchQuery = req.query?.search
-            ? {
-                content: {
-                    $regex: req.query.search,
-                    $options: "i",
-                },
-            }
-            : {};
-        const posts = await this._postRepo.paginate({
-            page: +req.query?.page,
-            limit: +req.query?.limit,
-            search: {
-                deletedAt: null,
-                ...(0, post_utilts_js_1.PostAvailability)(req),
-                ...searchQuery,
-            },
-            sort: { createdAt: -1 },
-        });
-        // const posts = await this._postRepo.find({
-        //   filter: {
-        // deletedAt: null,
-        //     $or: [
-        //       { availability: Availability_Enum.public },
-        //       {
-        //         availability: Availability_Enum.only_me,
-        //         createdBy: req.user?._id!,
-        //       },
-        //       {
-        //         availability: Availability_Enum.friends,
-        //         createdBy: {
-        //           $in: [...(req.user?.friends || []), req.user?._id],
-        //         },
-        //       },
-        //       { tags: { $in: [req.user?._id] } },
-        //     ],
-        //   },
-        // });
-        (0, response_success_js_1.successResponse)({ res, data: posts });
-    };
-    getProfilePosts = async (req, res, next) => {
-        const { userId } = req.params;
-        const user = await this._userRepo.findOne({
+    getStories = async (req, res, next) => {
+        const stories = await this._storyRepo.find({
             filter: {
-                _id: userId,
                 deletedAt: null,
+                expiresAt: { $gt: new Date() },
+                $or: [
+                    { createdBy: req.user?._id },
+                    { createdBy: { $in: req.user?.friends || [] } },
+                    {
+                        availability: post_enum_js_1.Availability_Enum.public,
+                    },
+                ],
             },
         });
-        if (!user) {
-            throw new global_error_handler_js_1.AppError("profile not found or already deleted");
-        }
-        const searchQuery = req.query?.search
-            ? {
-                content: {
-                    $regex: req.query.search,
-                    $options: "i",
-                },
-            }
-            : {};
-        const posts = await this._postRepo.paginate({
-            page: +req.query?.page,
-            limit: +req.query?.limit,
-            search: {
-                createdBy: userId,
-                deletedAt: null,
-                ...(0, post_utilts_js_1.PostAvailability)(req),
-                ...searchQuery,
-            },
-            sort: { createdAt: -1 },
-        });
-        // const posts = await this._postRepo.find({
-        //   filter: {
-        // deletedAt: null,
-        //     $or: [
-        //       { availability: Availability_Enum.public },
-        //       {
-        //         availability: Availability_Enum.only_me,
-        //         createdBy: req.user?._id!,
-        //       },
-        //       {
-        //         availability: Availability_Enum.friends,
-        //         createdBy: {
-        //           $in: [...(req.user?.friends || []), req.user?._id],
-        //         },
-        //       },
-        //       { tags: { $in: [req.user?._id] } },
-        //     ],
-        //   },
-        // });
-        (0, response_success_js_1.successResponse)({ res, data: posts });
+        (0, response_success_js_1.successResponse)({ res, data: stories });
     };
-    getPost = async (req, res, next) => {
-        const { postId } = req.params;
-        const post = await this._postRepo.findOne({
+    getStory = async (req, res, next) => {
+        const { storyId } = req.params;
+        const story = await this._storyRepo.findOne({
             filter: {
-                _id: postId,
+                _id: storyId,
                 deletedAt: null,
-                ...(0, post_utilts_js_1.PostAvailability)(req),
+                $or: [
+                    { createdBy: req.user?._id },
+                    { createdBy: { $in: req.user?.friends || [] } },
+                    {
+                        availability: post_enum_js_1.Availability_Enum.public,
+                    },
+                ],
             },
         });
-        (0, response_success_js_1.successResponse)({ res, data: post });
-    };
-    likePost = async (req, res, next) => {
-        const { postId } = req.params;
-        const { flag } = req.query;
-        let updateQuery = {
-            $addToSet: { likes: req.user?._id },
-        };
-        if (flag && flag == "dislike") {
-            updateQuery = {
-                $pull: { likes: req.user?._id },
-            };
+        if (!story) {
+            throw new global_error_handler_js_1.AppError("story not found or not allowed");
         }
-        const post = await this._postRepo.findOneAndUpdate({
-            filter: {
-                _id: postId,
-                ...(0, post_utilts_js_1.PostAvailability)(req),
-            },
-            update: updateQuery,
-        });
-        if (!post) {
-            throw new global_error_handler_js_1.AppError("post not found or not authorized");
-        }
-        (0, response_success_js_1.successResponse)({ res, data: post });
+        (0, response_success_js_1.successResponse)({ res, data: story });
     };
+    // reactStory = async (req: Request, res: Response, next: NextFunction) => {
+    //   const { storyId } = req.params;
+    //   const { reaction } = req.body;
+    //   const { flag } = req.query;
+    //   let updateQuery: any = {
+    //     $addToSet: { reaction },
+    //   };
+    //   if (flag && flag == "dislike") {
+    //     updateQuery = {
+    //       $pull: { reaction },
+    //     };
+    //   }
+    //   const story = await this._storyRepo.findOne({
+    //     filter: {
+    //       _id: storyId,
+    //       deletedAt: null,
+    //       expiresAt: { $gt: new Date() },
+    //     },
+    //   });
+    //   if (!story) {
+    //     throw new AppError("post not found or not authorized");
+    //   }
+    //   successResponse({ res, data: story });
+    // };
     //   updatePost = async (req: Request, res: Response, next: NextFunction) => {
     //     const { postId } = req.params;
     //     const {
@@ -207,7 +141,7 @@ class PostService {
     //       removeFiles,
     //       removeTags,
     //     } = req.body;
-    //     const post = await this._postRepo.findOne({
+    //     const post = await this._storyRepo.findOne({
     //       filter: {
     //         _id: postId,
     //         createdBy: req?.user?._id!,
@@ -247,7 +181,7 @@ class PostService {
     //           throw new AppError("you can not mention yourself");
     //         }
     //         updateTags.add(tag._id.toString());
-    //         (await this._redisService.getFCMs(tag._id)).map((token) =>
+    //         (await redisService.getFCMs(tag._id)).map((token) =>
     //           fcmTokens.push(token),
     //         );
     //       }
@@ -282,11 +216,11 @@ class PostService {
     //     await post.save();
     //     successResponse({ res, data: post });
     //   };
-    softDeletePost = async (req, res, next) => {
-        const { postId } = req.params;
-        const post = await this._postRepo.findOneAndUpdate({
+    softDeleteStory = async (req, res, next) => {
+        const { storyId } = req.params;
+        const story = await this._storyRepo.findOneAndUpdate({
             filter: {
-                _id: postId,
+                _id: storyId,
                 deletedAt: null,
             },
             update: {
@@ -298,29 +232,31 @@ class PostService {
                 new: true,
             },
         });
-        if (!post) {
-            throw new global_error_handler_js_1.AppError("post not found or already deleted");
+        if (!story) {
+            throw new global_error_handler_js_1.AppError("story not found or already deleted ");
         }
         return (0, response_success_js_1.successResponse)({
             res,
-            message: "post soft deleted",
-            data: post,
+            message: "story soft deleted",
+            data: story,
         });
     };
-    hardDeletePost = async (req, res, next) => {
-        const { postId } = req.params;
-        const post = await this._postRepo.findOneAndDelete({
+    hardDeleteStory = async (req, res, next) => {
+        const { storyId } = req.params;
+        const story = await this._storyRepo.findOneAndDelete({
             filter: {
-                _id: postId,
+                _id: storyId,
+                createdBy: req.user?._id,
             },
         });
-        if (!post) {
-            throw new global_error_handler_js_1.AppError("post not found");
+        if (!story) {
+            throw new global_error_handler_js_1.AppError("story not found");
         }
+        await this._s3service.deleteFiles(story.attachments);
         return (0, response_success_js_1.successResponse)({
             res,
-            message: "post hard deleted",
+            message: "story hard deleted",
         });
     };
 }
-exports.default = new PostService();
+exports.default = new StoryService();

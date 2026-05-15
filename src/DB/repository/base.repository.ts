@@ -17,12 +17,17 @@ abstract class BaseRepository<TDocument> {
 
   async findOne({
     filter,
-    projection,
+    options,
   }: {
     filter: QueryFilter<TDocument>;
-    projection?: any;
+    options?: QueryFilter<TDocument>;
   }): Promise<HydratedDocument<TDocument> | null> {
-    return this.model.findOne(filter, projection);
+    return this.model
+      .findOne(filter)
+      .skip(options?.skip!)
+      .limit(options?.limit!)
+      .select(options?.select!)
+      .populate(options?.populate as any);
   }
 
   async find({

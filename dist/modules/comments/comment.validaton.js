@@ -33,46 +33,39 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-const mongoose_1 = __importStar(require("mongoose"));
-const post_enum_1 = require("../../common/enum/post.enum");
-const CommentSchema = new mongoose_1.default.Schema({
-    content: {
-        type: String,
-        min: 1,
-    },
-    attachments: [String],
-    createdBy: { type: mongoose_1.Types.ObjectId, ref: "User", required: true },
-    tags: [{ type: mongoose_1.Types.ObjectId, ref: "User" }],
-    likes: [{ type: mongoose_1.Types.ObjectId, ref: "User" }],
-    deletedAt: {
-        type: Date,
-        default: null,
-    },
-    deletedBy: {
-        type: mongoose_1.Types.ObjectId,
-        ref: "User",
-        default: null,
-    },
-    // postId: {
-    //   type: Types.ObjectId,
-    //   ref: "Post",
-    //   required: true,
-    // },
-    // commentId: { type: Types.ObjectId, ref: "Comment" },
-    refId: { type: mongoose_1.Types.ObjectId, refPath: "onModel" },
-    onModel: { type: String, enum: post_enum_1.On_Model_Enum, required: true },
-    folderId: String,
-}, {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
-    strictQuery: true,
-    strict: true,
-});
-CommentSchema.virtual("replies", {
-    ref: "Comment",
-    localField: "_id",
-    foreignField: "refId",
-});
-const CommentModel = mongoose_1.default.models.Comment || mongoose_1.default.model("Comment", CommentSchema);
-exports.default = CommentModel;
+exports.createCommentSchema = void 0;
+const z = __importStar(require("zod"));
+const generalRules_js_1 = require("../../common/utilts/generalRules.js");
+const post_enum_js_1 = require("../../common/enum/post.enum.js");
+exports.createCommentSchema = {
+    body: z
+        .strictObject({
+        content: z.string().optional(),
+        attachments: z.array(generalRules_js_1.generalRules.file).optional(),
+        tags: z.array(generalRules_js_1.generalRules.id).optional(),
+        onModel: z.enum(post_enum_js_1.On_Model_Enum),
+    })
+        .superRefine((args, ctx) => {
+        if (!args.content && !args.attachments?.length) {
+            ctx.addIssue({
+                code: "custom",
+                path: ["content"],
+                message: "content is required",
+            });
+        }
+        if (args?.tags) {
+            const uniqueTags = new Set(args.tags);
+            if (args.tags.length !== uniqueTags.size) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: ["tags"],
+                    message: "Duplicate tags",
+                });
+            }
+        }
+    }),
+    params: z.strictObject({
+        postId: generalRules_js_1.generalRules.id,
+        commentId: generalRules_js_1.generalRules.id.optional(),
+    }),
+};

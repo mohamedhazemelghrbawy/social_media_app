@@ -18,7 +18,7 @@ import { sendOtp } from "../../common/utilts/email/otp.resend";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
 import { eventEmitter } from "../../common/utilts/email/email.event";
 import { Store_enum } from "../../common/enum/mutlter.enum.js";
-import NotificationService from "../../common/services/notification.service";
+// import NotificationService from "../../common/services/notification.service";
 import postModel from "../../DB/models/post.model.js";
 import PostRepository from "../../DB/repository/post.repository.js";
 import { Types } from "mongoose";
@@ -29,7 +29,7 @@ class UserService {
   private readonly _userModel = new UserRepository();
   private readonly _postRepo = new PostRepository();
   private readonly _s3Service = new S3Service();
-  private readonly _notificationService = NotificationService;
+  // private readonly _notificationService = NotificationService;
   constructor() {}
 
   signUp = async (req: Request, res: Response, next: NextFunction) => {
@@ -267,17 +267,17 @@ class UserService {
       options: { expiresIn: "1y", jwtid },
     });
 
-    if (fcm) {
-      await redisService.addFCM({ userId: user._id, FCMToken: fcm });
-      const tokens = await redisService.getFCMs(user._id);
-      await this._notificationService.sentNotifications({
-        tokens,
-        data: {
-          title: `hi ${user.firstName}`,
-          body: `new login at ${new Date()}`,
-        },
-      });
-    }
+    // if (fcm) {
+    //   await redisService.addFCM({ userId: user._id, FCMToken: fcm });
+    //   const tokens = await redisService.getFCMs(user._id);
+    //   await this._notificationService.sentNotifications({
+    //     tokens,
+    //     data: {
+    //       title: `hi ${user.firstName}`,
+    //       body: `new login at ${new Date()}`,
+    //     },
+    //   });
+    // }
 
     // await redisService.deleteKey(redisService.max_password_key({ email }));
     // await redisService.deleteKey(redisService.block_password_key({ email }));
@@ -414,7 +414,7 @@ class UserService {
 
   uploadfile = async (req: Request, res: Response, next: NextFunction) => {
     if (!req.file) {
-      return next(new AppError("file is required", 400));
+      throw new AppError("file is required");
     }
 
     const key = await this._s3Service.uploadFile({
@@ -423,19 +423,6 @@ class UserService {
     });
 
     successResponse({ res, data: key });
-  };
-
-  upload = async (req: Request, res: Response, next: NextFunction) => {
-    const { ContentType, fileName } = req.body;
-    const { url, key } = await this._s3Service.createPreSignedUrl({
-      fileName,
-      ContentType,
-      path: `users/${(req as any).user._id}`,
-    });
-    (req as any).user.profilePic = key;
-    await (req as any).user?.save();
-
-    successResponse({ res, data: { url, key } });
   };
 
   uploadLargefile = async (req: Request, res: Response, next: NextFunction) => {
@@ -453,12 +440,28 @@ class UserService {
   uploadfiles = async (req: Request, res: Response, next: NextFunction) => {
     const urls = await this._s3Service.uploadFiles({
       files: req.files as Express.Multer.File[],
-      path: "users/Images",
+      path: "users/files",
     });
 
     successResponse({ res, data: urls });
   };
 
+  upload = async (req: Request, res: Response, next: NextFunction) => {
+    const { ContentType, fileName } = req.body;
+    const { url, key } = await this._s3Service.createPreSignedUrl({
+      fileName,
+      ContentType,
+      path: `users/${req.user?._id}`,
+    });
+    // (req as any).user.profilePic = key;
+    await this._userModel.findOneAndUpdate({
+      filter: { _id: req?.user?._id },
+      update: { profilePic: key },
+    });
+    await req.user?.save();
+
+    successResponse({ res, data: { url, key } });
+  };
   softDeleteUser = async (req: Request, res: Response, next: NextFunction) => {
     const { userId } = req.params;
 

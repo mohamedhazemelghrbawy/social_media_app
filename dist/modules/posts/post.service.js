@@ -10,16 +10,18 @@ const redis_service_js_1 = __importDefault(require("../../common/services/redis.
 const response_success_js_1 = require("../../common/utilts/response.success.js");
 const s3_service_js_1 = require("../../common/services/s3.service.js");
 const mutlter_enum_js_1 = require("../../common/enum/mutlter.enum.js");
-const notification_service_js_1 = __importDefault(require("../../common/services/notification.service.js"));
+// import notificationService from "../../common/services/notification.service.js";
 const node_crypto_1 = require("node:crypto");
 const post_repository_js_1 = __importDefault(require("../../DB/repository/post.repository.js"));
 const post_utilts_js_1 = require("../../common/utilts/post.utilts.js");
+const comment_repository_js_1 = __importDefault(require("../../DB/repository/comment.repository.js"));
 class PostService {
     _userRepo = new user_repository_1.default();
     _postRepo = new post_repository_js_1.default();
+    _commentRepo = new comment_repository_js_1.default();
     _s3service = new s3_service_js_1.S3Service();
     _redisService = redis_service_js_1.default;
-    _notificationService = notification_service_js_1.default;
+    // private readonly _notificationService = notificationService;
     constructor() { }
     createPost = async (req, res, next) => {
         const { content, allowComment, availability, tags } = req.body;
@@ -61,55 +63,66 @@ class PostService {
             await this._s3service.deleteFiles(urls);
             throw new global_error_handler_js_1.AppError("fail to create post");
         }
-        if (fcmTokens?.length) {
-            await this._notificationService.sentNotifications({
-                tokens: fcmTokens,
-                data: {
-                    title: `you are mention on new post`,
-                    body: content || "new post",
-                },
-            });
-        }
+        // if (fcmTokens?.length) {
+        //   await this._notificationService.sentNotifications({
+        //     tokens: fcmTokens,
+        //     data: {
+        //       title: `you are mention on new post`,
+        //       body: content || "new post",
+        //     },
+        //   });
+        // }
         (0, response_success_js_1.successResponse)({ res, data: post });
     };
     getPosts = async (req, res, next) => {
-        const searchQuery = req.query?.search
-            ? {
-                content: {
-                    $regex: req.query.search,
-                    $options: "i",
-                },
-            }
-            : {};
-        const posts = await this._postRepo.paginate({
-            page: +req.query?.page,
-            limit: +req.query?.limit,
-            search: {
-                deletedAt: null,
-                ...(0, post_utilts_js_1.PostAvailability)(req),
-                ...searchQuery,
-            },
-            sort: { createdAt: -1 },
-        });
-        // const posts = await this._postRepo.find({
-        //   filter: {
-        // deletedAt: null,
-        //     $or: [
-        //       { availability: Availability_Enum.public },
-        //       {
-        //         availability: Availability_Enum.only_me,
-        //         createdBy: req.user?._id!,
+        // const searchQuery = req.query?.search
+        //   ? {
+        //       content: {
+        //         $regex: req.query.search,
+        //         $options: "i",
         //       },
-        //       {
-        //         availability: Availability_Enum.friends,
-        //         createdBy: {
-        //           $in: [...(req.user?.friends || []), req.user?._id],
-        //         },
-        //       },
-        //       { tags: { $in: [req.user?._id] } },
-        //     ],
+        //     }
+        //   : {};
+        // const posts = await this._postRepo.paginate({
+        //   page: +req.query?.page!,
+        //   limit: +req.query?.limit!,
+        //   search: {
+        //     deletedAt: null,
+        //     ...PostAvailability(req),
+        //     ...searchQuery,
         //   },
+        //   sort: { createdAt: -1 },
         // });
+        const posts = await this._postRepo.find({
+            filter: {
+                deletedAt: null,
+                $or: [(0, post_utilts_js_1.PostAvailability)(req)],
+            },
+            options: {
+                populate: [
+                    {
+                        path: "comments",
+                        match: {
+                            refId: { $exists: false },
+                        },
+                        populate: [
+                            {
+                                path: "replies",
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+        // let doc = [];
+        // for (const post of posts) {
+        //   const comments = await this._commentRepo.find({
+        //     filter: {
+        //       postId: post._id,
+        //     },
+        //   });
+        //   doc.push({ ...post.toObject(), comments });
+        // }
         (0, response_success_js_1.successResponse)({ res, data: posts });
     };
     getProfilePosts = async (req, res, next) => {
@@ -252,15 +265,15 @@ class PostService {
             });
             post.attachments?.push(...urls);
         }
-        if (fcmTokens?.length) {
-            await this._notificationService.sentNotifications({
-                tokens: fcmTokens,
-                data: {
-                    title: content || "new post",
-                    body: `you are mention on new post`,
-                },
-            });
-        }
+        // if (fcmTokens?.length) {
+        //   await this._notificationService.sentNotifications({
+        //     tokens: fcmTokens,
+        //     data: {
+        //       title: content || "new post",
+        //       body: `you are mention on new post`,
+        //     },
+        //   });
+        // }
         if (content) {
             post.content = content;
         }
@@ -282,8 +295,7 @@ class PostService {
             },
             update: {
                 deletedAt: new Date(),
-                deletedBy: req.user?._id,
-                isDeleted: true,
+                deletedBy: req.user._id,
             },
             options: {
                 new: true,
@@ -300,17 +312,26 @@ class PostService {
     };
     hardDeletePost = async (req, res, next) => {
         const { postId } = req.params;
-        const post = await this._postRepo.findOneAndDelete({
-            filter: {
-                _id: postId,
-            },
+        const post = await this._postRepo.findOne({
+            filter: { _id: postId },
         });
         if (!post) {
             throw new global_error_handler_js_1.AppError("post not found");
         }
+        await this._commentRepo.deleteMany({
+            filter: {
+                postId: post._id,
+            },
+        });
+        await this._postRepo.findOneAndDelete({
+            filter: { _id: postId },
+        });
+        if (post.attachments?.length) {
+            await this._s3service.deleteFiles(post.attachments);
+        }
         return (0, response_success_js_1.successResponse)({
             res,
-            message: "post hard deleted",
+            message: "post and related comments deleted successfully",
         });
     };
 }

@@ -18,16 +18,18 @@ const config_service_1 = require("../../config/config.service");
 const s3_service_1 = require("../../common/services/s3.service");
 const otp_resend_1 = require("../../common/utilts/email/otp.resend");
 const google_auth_library_1 = require("google-auth-library");
-const notification_service_1 = __importDefault(require("../../common/services/notification.service"));
+// import NotificationService from "../../common/services/notification.service";
 const post_model_js_1 = __importDefault(require("../../DB/models/post.model.js"));
 const post_repository_js_1 = __importDefault(require("../../DB/repository/post.repository.js"));
 const mongoose_1 = require("mongoose");
+const comment_model_js_1 = __importDefault(require("../../DB/models/comment.model.js"));
+const story_model_js_1 = __importDefault(require("../../DB/models/story.model.js"));
 // import { emit } from "cluster";
 class UserService {
     _userModel = new user_repository_1.default();
     _postRepo = new post_repository_js_1.default();
     _s3Service = new s3_service_1.S3Service();
-    _notificationService = notification_service_1.default;
+    // private readonly _notificationService = NotificationService;
     constructor() { }
     signUp = async (req, res, next) => {
         let { userName, email, password, cPassword, phone, address, age, gender } = req.body;
@@ -44,7 +46,6 @@ class UserService {
         console.log(3);
         const otp = await (0, send_email_1.generateOTP)();
         const type = "signupOtp";
-        // eventEmitter.on("confirmed", async ({ email, userName, otp }) => {
         await (0, send_email_1.sendEmail)({
             to: email,
             subject: "Email Confirmation",
@@ -79,7 +80,7 @@ class UserService {
         const client = new google_auth_library_1.OAuth2Client();
         const ticket = await client.verifyIdToken({
             idToken,
-            audience: config_service_1.GOOGLE_CLIENT_ID,
+            // audience: GOOGLE_CLIENT_ID as string,
         });
         const payload = ticket.getPayload();
         if (!payload) {
@@ -214,17 +215,17 @@ class UserService {
             secret_key: config_service_1.REFRESH_SECRET_KEY,
             options: { expiresIn: "1y", jwtid },
         });
-        if (fcm) {
-            await redis_service_1.default.addFCM({ userId: user._id, FCMToken: fcm });
-            const tokens = await redis_service_1.default.getFCMs(user._id);
-            await this._notificationService.sentNotifications({
-                tokens,
-                data: {
-                    title: `hi ${user.firstName}`,
-                    body: `new login at ${new Date()}`,
-                },
-            });
-        }
+        // if (fcm) {
+        //   await redisService.addFCM({ userId: user._id, FCMToken: fcm });
+        //   const tokens = await redisService.getFCMs(user._id);
+        //   await this._notificationService.sentNotifications({
+        //     tokens,
+        //     data: {
+        //       title: `hi ${user.firstName}`,
+        //       body: `new login at ${new Date()}`,
+        //     },
+        //   });
+        // }
         // await redisService.deleteKey(redisService.max_password_key({ email }));
         // await redisService.deleteKey(redisService.block_password_key({ email }));
         (0, response_success_1.successResponse)({
@@ -342,24 +343,13 @@ class UserService {
     };
     uploadfile = async (req, res, next) => {
         if (!req.file) {
-            return next(new global_error_handler_1.AppError("file is required", 400));
+            throw new global_error_handler_1.AppError("file is required");
         }
         const key = await this._s3Service.uploadFile({
             file: req.file,
             path: "users",
         });
         (0, response_success_1.successResponse)({ res, data: key });
-    };
-    upload = async (req, res, next) => {
-        const { ContentType, fileName } = req.body;
-        const { url, key } = await this._s3Service.createPreSignedUrl({
-            fileName,
-            ContentType,
-            path: `users/${req.user._id}`,
-        });
-        req.user.profilePic = key;
-        await req.user?.save();
-        (0, response_success_1.successResponse)({ res, data: { url, key } });
     };
     uploadLargefile = async (req, res, next) => {
         if (!req.file) {
@@ -374,19 +364,35 @@ class UserService {
     uploadfiles = async (req, res, next) => {
         const urls = await this._s3Service.uploadFiles({
             files: req.files,
-            path: "users/Images",
+            path: "users/files",
         });
         (0, response_success_1.successResponse)({ res, data: urls });
+    };
+    upload = async (req, res, next) => {
+        const { ContentType, fileName } = req.body;
+        const { url, key } = await this._s3Service.createPreSignedUrl({
+            fileName,
+            ContentType,
+            path: `users/${req.user?._id}`,
+        });
+        // (req as any).user.profilePic = key;
+        await this._userModel.findOneAndUpdate({
+            filter: { _id: req?.user?._id },
+            update: { profilePic: key },
+        });
+        await req.user?.save();
+        (0, response_success_1.successResponse)({ res, data: { url, key } });
     };
     softDeleteUser = async (req, res, next) => {
         const { userId } = req.params;
         const user = await this._userModel.findOneAndUpdate({
             filter: {
                 _id: userId,
+                deletedAt: null,
             },
             update: {
                 deletedAt: new Date(),
-                deletedBy: req.user?._id,
+                deletedBy: req.user._id,
                 isDeleted: true,
             },
             options: {
@@ -394,7 +400,7 @@ class UserService {
             },
         });
         if (!user) {
-            throw new global_error_handler_1.AppError("user not found");
+            throw new global_error_handler_1.AppError("user not found or already deleted");
         }
         return (0, response_success_1.successResponse)({
             res,
@@ -405,24 +411,21 @@ class UserService {
     hardDeleteUser = async (req, res, next) => {
         const { userId } = req.params;
         const user = await this._userModel.findOne({
-            filter: {
-                _id: userId,
-            },
+            filter: { _id: userId },
         });
         if (!user) {
             throw new global_error_handler_1.AppError("user not found");
         }
-        await post_model_js_1.default.deleteMany({
-            createdBy: new mongoose_1.Types.ObjectId(userId),
-        });
+        const id = new mongoose_1.Types.ObjectId(userId);
+        await post_model_js_1.default.deleteMany({ createdBy: id });
+        await comment_model_js_1.default.deleteMany({ createdBy: id });
+        await story_model_js_1.default.deleteMany({ createdBy: id });
         await this._userModel.findOneAndDelete({
-            filter: {
-                _id: userId,
-            },
+            filter: { _id: id },
         });
         return (0, response_success_1.successResponse)({
             res,
-            message: "User hard deleted",
+            message: "User permanently deleted",
         });
     };
 }

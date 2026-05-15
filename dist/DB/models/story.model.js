@@ -45,7 +45,7 @@ const StorySchema = new mongoose_1.default.Schema({
     },
     attachments: [String],
     createdBy: { type: mongoose_1.Types.ObjectId, ref: "User", required: true },
-    mentions: [{ type: mongoose_1.Types.ObjectId, ref: "User" }],
+    tags: [{ type: mongoose_1.Types.ObjectId, ref: "User" }],
     reactions: [
         {
             userId: { type: mongoose_1.Types.ObjectId, ref: "User", required: true },
@@ -71,6 +71,15 @@ const StorySchema = new mongoose_1.default.Schema({
         type: Date,
         default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
     },
+    deletedAt: {
+        type: Date,
+        default: null,
+    },
+    deletedBy: {
+        type: mongoose_1.Types.ObjectId,
+        ref: "User",
+        default: null,
+    },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
@@ -80,9 +89,4 @@ const StorySchema = new mongoose_1.default.Schema({
 });
 const StoryModel = mongoose_1.default.models.Story ||
     mongoose_1.default.model("Story", StorySchema);
-// PostSchema.post("findOneAndUpdate", async function (doc) {
-//   if (!doc?.deletedAt) return;
-//   const postId = doc._id;
-//   await postModel.updateMany({ createdBy: userId }, { deletedAt: new Date() });
-// });
 exports.default = StoryModel;

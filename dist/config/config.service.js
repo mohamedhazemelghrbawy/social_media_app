@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AWS_BUCKET_NAME = exports.AWS_SECRET_KEY = exports.AWS_ACCESS_KEY = exports.AWS_REGION = exports.GOOGLE_CLIENT_ID = exports.PREFIX = exports.REDIS_URL = exports.PASSWORD = exports.EMAIL = exports.REFRESH_SECRET_KEY = exports.SECRET_KEY = exports.SALT_ROUNDS = exports.MONGO_URI = exports.PORT = void 0;
+exports.AWS_BUCKET_NAME = exports.AWS_SECRET_KEY = exports.AWS_ACCESS_KEY = exports.AWS_REGION = exports.PREFIX = exports.REDIS_URL = exports.PASSWORD = exports.EMAIL = exports.REFRESH_SECRET_KEY = exports.SECRET_KEY = exports.SALT_ROUNDS = exports.MONGO_URI = exports.PORT = void 0;
 const path_1 = require("path");
 const dotenv_1 = require("dotenv");
 const NODE_ENV = process.env.NODE_ENV;
@@ -14,7 +14,7 @@ exports.EMAIL = process.env.EMAIL;
 exports.PASSWORD = process.env.PASSWORD;
 exports.REDIS_URL = process.env.REDIS_URL;
 exports.PREFIX = process.env.PREFIX;
-exports.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+// export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 exports.AWS_REGION = process.env.AWS_REGION;
 exports.AWS_ACCESS_KEY = process.env.AWS_ACCESS_KEY;
 exports.AWS_SECRET_KEY = process.env.AWS_SECRET_KEY;

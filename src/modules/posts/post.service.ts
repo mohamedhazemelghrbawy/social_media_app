@@ -6,7 +6,7 @@ import redisService from "../../common/services/redis.service.js";
 import { successResponse } from "../../common/utilts/response.success.js";
 import { S3Service } from "../../common/services/s3.service.js";
 import { Store_enum } from "../../common/enum/mutlter.enum.js";
-import notificationService from "../../common/services/notification.service.js";
+// import notificationService from "../../common/services/notification.service.js";
 import { randomUUID } from "node:crypto";
 import { createPostDTO, updatePostDTO } from "./post.dto.js";
 import PostRepository from "../../DB/repository/post.repository.js";
@@ -21,7 +21,7 @@ class PostService {
 
   private readonly _s3service = new S3Service();
   private readonly _redisService = redisService;
-  private readonly _notificationService = notificationService;
+  // private readonly _notificationService = notificationService;
 
   constructor() {}
 
@@ -73,58 +73,71 @@ class PostService {
       throw new AppError("fail to create post");
     }
 
-    if (fcmTokens?.length) {
-      await this._notificationService.sentNotifications({
-        tokens: fcmTokens,
-        data: {
-          title: `you are mention on new post`,
-          body: content || "new post",
-        },
-      });
-    }
+    // if (fcmTokens?.length) {
+    //   await this._notificationService.sentNotifications({
+    //     tokens: fcmTokens,
+    //     data: {
+    //       title: `you are mention on new post`,
+    //       body: content || "new post",
+    //     },
+    //   });
+    // }
     successResponse({ res, data: post });
   };
 
   getPosts = async (req: Request, res: Response, next: NextFunction) => {
-    const searchQuery = req.query?.search
-      ? {
-          content: {
-            $regex: req.query.search,
-            $options: "i",
-          },
-        }
-      : {};
+    // const searchQuery = req.query?.search
+    //   ? {
+    //       content: {
+    //         $regex: req.query.search,
+    //         $options: "i",
+    //       },
+    //     }
+    //   : {};
 
-    const posts = await this._postRepo.paginate({
-      page: +req.query?.page!,
-      limit: +req.query?.limit!,
-      search: {
+    // const posts = await this._postRepo.paginate({
+    //   page: +req.query?.page!,
+    //   limit: +req.query?.limit!,
+    //   search: {
+    //     deletedAt: null,
+    //     ...PostAvailability(req),
+    //     ...searchQuery,
+    //   },
+    //   sort: { createdAt: -1 },
+    // });
+
+    const posts = await this._postRepo.find({
+      filter: {
         deletedAt: null,
-        ...PostAvailability(req),
-        ...searchQuery,
+        $or: [PostAvailability(req)],
       },
-      sort: { createdAt: -1 },
+      options: {
+        populate: [
+          {
+            path: "comments",
+            match: {
+              refId: { $exists: false },
+            },
+            populate: [
+              {
+                path: "replies",
+              },
+            ],
+          },
+        ],
+      },
     });
 
-    // const posts = await this._postRepo.find({
-    //   filter: {
-    // deletedAt: null,
-    //     $or: [
-    //       { availability: Availability_Enum.public },
-    //       {
-    //         availability: Availability_Enum.only_me,
-    //         createdBy: req.user?._id!,
-    //       },
-    //       {
-    //         availability: Availability_Enum.friends,
-    //         createdBy: {
-    //           $in: [...(req.user?.friends || []), req.user?._id],
-    //         },
-    //       },
-    //       { tags: { $in: [req.user?._id] } },
-    //     ],
-    //   },
-    // });
+    // let doc = [];
+
+    // for (const post of posts) {
+    //   const comments = await this._commentRepo.find({
+    //     filter: {
+    //       postId: post._id,
+    //     },
+    //   });
+    //   doc.push({ ...post.toObject(), comments });
+    // }
 
     successResponse({ res, data: posts });
   };
@@ -305,15 +318,15 @@ class PostService {
       post.attachments?.push(...urls);
     }
 
-    if (fcmTokens?.length) {
-      await this._notificationService.sentNotifications({
-        tokens: fcmTokens,
-        data: {
-          title: content || "new post",
-          body: `you are mention on new post`,
-        },
-      });
-    }
+    // if (fcmTokens?.length) {
+    //   await this._notificationService.sentNotifications({
+    //     tokens: fcmTokens,
+    //     data: {
+    //       title: content || "new post",
+    //       body: `you are mention on new post`,
+    //     },
+    //   });
+    // }
 
     if (content) {
       post.content = content;

@@ -39,6 +39,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const user_enum_1 = require("../../common/enum/user.enum");
 const post_model_js_1 = __importDefault(require("./post.model.js"));
+const comment_model_js_1 = __importDefault(require("./comment.model.js"));
+const story_model_js_1 = __importDefault(require("./story.model.js"));
 const userSchema = new mongoose_1.default.Schema({
     firstName: {
         type: String,
@@ -142,7 +144,28 @@ userSchema.post("findOneAndUpdate", async function (doc) {
     if (!doc?.deletedAt)
         return;
     const userId = doc._id;
-    await post_model_js_1.default.updateMany({ createdBy: userId }, { deletedAt: new Date() });
+    const now = new Date();
+    await post_model_js_1.default.updateMany({
+        createdBy: userId,
+        deletedAt: null,
+    }, {
+        deletedAt: now,
+        deletedBy: userId,
+    });
+    await comment_model_js_1.default.updateMany({
+        createdBy: userId,
+        deletedAt: null,
+    }, {
+        deletedAt: now,
+        deletedBy: userId,
+    });
+    await story_model_js_1.default.updateMany({
+        createdBy: userId,
+        deletedAt: null,
+    }, {
+        deletedAt: now,
+        deletedBy: userId,
+    });
 });
 // userSchema.pre("validate", function (){
 //   console.log("----pre validate hook ")

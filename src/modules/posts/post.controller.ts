@@ -5,8 +5,11 @@ import { authentication } from "../../common/middleware/authentication";
 import multerCloud from "../../common/middleware/multer.cloud.js";
 import { validation } from "../../common/middleware/validation.js";
 import { Store_enum } from "../../common/enum/mutlter.enum.js";
+import commentRouter from "../comments/comment.controller.js";
 
 const postRouter = Router();
+
+postRouter.use("/:postId/comments{/:commentId,replies}", commentRouter);
 
 postRouter.post(
   "/",

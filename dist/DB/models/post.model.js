@@ -74,11 +74,24 @@ const PostSchema = new mongoose_1.default.Schema({
     strictQuery: true,
     strict: true,
 });
+PostSchema.virtual("Comments", {
+    ref: "Comment",
+    localField: "_id",
+    foreignField: "refId",
+});
 const postModel = mongoose_1.default.models.post ||
     mongoose_1.default.model("Post", PostSchema);
-// PostSchema.post("findOneAndUpdate", async function (doc) {
-//   if (!doc?.deletedAt) return;
-//   const postId = doc._id;
-//   await postModel.updateMany({ createdBy: userId }, { deletedAt: new Date() });
-// });
+PostSchema.post("findOneAndUpdate", async function (doc) {
+    if (!doc?.deletedAt)
+        return;
+    const postId = doc._id;
+    const commentModel = mongoose_1.default.model("Comment");
+    await commentModel.updateMany({
+        postId,
+        deletedAt: null,
+    }, {
+        deletedAt: new Date(),
+        deletedBy: doc.deletedBy,
+    });
+});
 exports.default = postModel;
