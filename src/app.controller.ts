@@ -20,7 +20,7 @@ import { successResponse } from "./common/utilts/response.success";
 import { redisConnection } from "./DB/redis/redis.db";
 import { pipeline } from "node:stream/promises";
 import { resolveRuntimeExtensions } from "@aws-sdk/client-s3/dist-types/runtimeExtensions";
-// import notificationService from "./common/services/notification.service";
+import notificationService from "./common/services/notification.service";
 import postRouter from "./modules/posts/post.controller";
 import storyRouter from "./modules/stories/story.controller";
 import {
@@ -129,18 +129,18 @@ const bootstrap = async () => {
 
   app.use("/graphql", createHandler({ schema }));
 
-  // app.get(
-  //   "/send-notification",
-  //   async (req: Request, res: Response, next: NextFunction) => {
-  //     await notificationService.sentNotification({
-  //       token: req.body.token,
-  //       data: {
-  //         title: "Hello",
-  //         body: "Hiiiiiiii",
-  //       },
-  //     });
-  //   },
-  // );
+  app.get(
+    "/send-notification",
+    async (req: Request, res: Response, next: NextFunction) => {
+      await notificationService.sentNotification({
+        token: req.body.token,
+        data: {
+          title: "Hello",
+          body: "Hiiiiiiii",
+        },
+      });
+    },
+  );
 
   app.get(
     "/upload/pre-signed/*path",
@@ -230,9 +230,9 @@ const bootstrap = async () => {
   checkConnectionDB();
   await redisService.connect();
 
-  // app.use("/auth", authRouter);
-  // app.use("/post", postRouter);
-  // app.use("/story", storyRouter);
+  app.use("/auth", authRouter);
+  app.use("/post", postRouter);
+  app.use("/story", storyRouter);
   app.use("{/*demo}", (req: Request, res: Response, next: NextFunction) => {
     // throw new Error(
     //   `Url ${req.originalUrl} with method ${req.method} not found`,
