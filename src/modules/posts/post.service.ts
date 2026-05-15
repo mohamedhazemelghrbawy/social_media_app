@@ -73,15 +73,15 @@ class PostService {
       throw new AppError("fail to create post");
     }
 
-    // if (fcmTokens?.length) {
-    //   await this._notificationService.sentNotifications({
-    //     tokens: fcmTokens,
-    //     data: {
-    //       title: `you are mention on new post`,
-    //       body: content || "new post",
-    //     },
-    //   });
-    // }
+    if (fcmTokens?.length) {
+      await this._notificationService.sentNotifications({
+        tokens: fcmTokens,
+        data: {
+          title: `you are mention on new post`,
+          body: content || "new post",
+        },
+      });
+    }
     successResponse({ res, data: post });
   };
 

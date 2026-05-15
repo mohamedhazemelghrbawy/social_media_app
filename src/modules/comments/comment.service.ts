@@ -6,7 +6,7 @@ import redisService from "../../common/services/redis.service.js";
 import { successResponse } from "../../common/utilts/response.success.js";
 import { S3Service } from "../../common/services/s3.service.js";
 
-// import notificationService from "../../common/services/notification.service.js";
+import notificationService from "../../common/services/notification.service.js";
 
 import PostRepository from "../../DB/repository/post.repository.js";
 import CommentModel, { IComment } from "../../DB/models/comment.model.js";
@@ -28,7 +28,7 @@ class commentService {
   private readonly _postRepo = new PostRepository();
   private readonly _s3service = new S3Service();
   private readonly _redisService = redisService;
-  // private readonly _notificationService = notificationService;
+  private readonly _notificationService = notificationService;
 
   constructor() {}
 
@@ -135,15 +135,15 @@ class commentService {
       throw new AppError("fail to create comment");
     }
 
-    // if (fcmTokens?.length) {
-    //   await this._notificationService.sentNotifications({
-    //     tokens: fcmTokens,
-    //     data: {
-    //       title: `you are mention on new comment`,
-    //       body: content || "new comment",
-    //     },
-    //   });
-    // }
+    if (fcmTokens?.length) {
+      await this._notificationService.sentNotifications({
+        tokens: fcmTokens,
+        data: {
+          title: `you are mention on new comment`,
+          body: content || "new comment",
+        },
+      });
+    }
     successResponse({ res, data: comment });
   };
 
