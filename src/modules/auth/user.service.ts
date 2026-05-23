@@ -24,7 +24,15 @@ import PostRepository from "../../DB/repository/post.repository.js";
 import { Types } from "mongoose";
 import CommentModel from "../../DB/models/comment.model.js";
 import StoryModel from "../../DB/models/story.model.js";
+import { argsToArgsConfig } from "graphql/type/definition.js";
 // import { emit } from "cluster";
+
+const users = [
+  { id: 1, name: "Mohamed", age: 20 },
+  { id: 1, name: "Ahmed", age: 30 },
+  { id: 1, name: "Khaled", age: 25 },
+];
+
 class UserService {
   private readonly _userModel = new UserRepository();
   private readonly _postRepo = new PostRepository();
@@ -515,6 +523,16 @@ class UserService {
       res,
       message: "User permanently deleted",
     });
+  };
+
+  // ==============
+
+  getUsers = async () => {
+    return await this._userModel.find({ filter: {} });
+  };
+
+  getUser = async (userId: Types.ObjectId) => {
+    return await this._userModel.find({ filter: { _id: userId } });
   };
 }
 

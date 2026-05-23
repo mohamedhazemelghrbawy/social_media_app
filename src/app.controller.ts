@@ -23,15 +23,9 @@ import { resolveRuntimeExtensions } from "@aws-sdk/client-s3/dist-types/runtimeE
 import notificationService from "./common/services/notification.service";
 import postRouter from "./modules/posts/post.controller";
 import storyRouter from "./modules/stories/story.controller";
-import {
-  GraphQLInt,
-  GraphQLList,
-  GraphQLNonNull,
-  GraphQLObjectType,
-  GraphQLSchema,
-  GraphQLString,
-} from "graphql";
+import { gql_schema } from "./modules/graphql/graphql.schema.js";
 import { createHandler } from "graphql-http/lib/use/express";
+import { authentication } from "./common/middleware/authentication.js";
 
 const port = PORT;
 const bootstrap = async () => {
@@ -82,52 +76,10 @@ const bootstrap = async () => {
   // }
   // test();
 
-  const users = [
-    { id: 1, name: "Mohamed", age: 20 },
-    { id: 1, name: "Ahmed", age: 30 },
-    { id: 1, name: "Khaled", age: 25 },
-  ];
-
-  const userType = new GraphQLObjectType({
-    name: "getUser",
-    fields: {
-      id: { type: GraphQLInt },
-      name: { type: GraphQLString },
-      age: { type: GraphQLInt },
-    },
-  });
-
-  const schema = new GraphQLSchema({
-    query: new GraphQLObjectType({
-      name: "RootQueryType",
-      description: "query",
-      fields: {
-        // hello: {
-        //   type: GraphQLString,
-        //   resolve: () => {
-        //     return "Hello World";
-        //   },
-        // },
-        getUser: {
-          type: userType,
-          args: {
-            name: { type: new GraphQLNonNull(GraphQLString) },
-          },
-          resolve: (parent, args) => {
-            return users.find((user) => user.name == args.name);
-          },
-        },
-        listUsers: {
-          type: new GraphQLList(userType),
-          resolve: () => {
-            return users;
-          },
-        },
-      },
-    }),
-  });
-
-  app.use("/graphql", createHandler({ schema }));
+  app.use(
+    "/graphql",
+    createHandler({ schema: gql_schema, context: (req) => ({ req }) }),
+  );
 
   app.get(
     "/send-notification",

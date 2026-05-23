@@ -1,8 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import redisService from "../services/redis.service";
 import { PREFIX, SECRET_KEY } from "../../config/config.service";
 import { verifyToken } from "../utilts/token.service";
-import jwt, { JwtPayload } from "jsonwebtoken";
 import UserRepository from "../../DB/repository/user.repository";
 import { AppError } from "../utilts/global-error-handler";
 import { IUser } from "../../DB/models/user.model";
@@ -23,14 +21,13 @@ declare global {
   }
 }
 
-export {};
-export const authentication = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  const { authorization } = req.headers;
+type TDecoded = {
+  id: string;
+  jti: string;
+  iat: number;
+};
 
+const validateToken = async (authorization: string) => {
   if (!authorization) {
     throw new AppError("token not exist");
   }
@@ -44,14 +41,12 @@ export const authentication = async (
   if (!SECRET_KEY) {
     throw new AppError("SECRET_KEY missing");
   }
+
   const decoded = verifyToken({
     token,
     secret_key: SECRET_KEY,
-  }) as {
-    id: string;
-    jti: string;
-    iat: number;
-  };
+  }) as TDecoded;
+
   if (!decoded || typeof decoded === "string" || !("id" in decoded)) {
     throw new AppError("Invalid token");
   }
@@ -59,6 +54,7 @@ export const authentication = async (
   const user = await userServices.findOne({
     filter: { _id: decoded.id },
   });
+
   if (!user) {
     throw new AppError("user not exist", 400);
   }
@@ -71,9 +67,24 @@ export const authentication = async (
     throw new AppError("token expired", 401);
   }
 
-  // res.locals.user = user;
-  // res.locals.decoded = decoded;
+  return { user, decoded };
+};
+
+export const authentication = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { authorization } = req.headers;
+
+  const { user, decoded } = await validateToken(authorization as string);
+
   req.user = user;
   req.decoded = decoded;
+
   next();
+};
+
+export const authentication_gql = async (authorization: string) => {
+  return await validateToken(authorization);
 };
