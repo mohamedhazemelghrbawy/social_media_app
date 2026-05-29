@@ -10,12 +10,16 @@ const express_rate_limit_1 = require("express-rate-limit");
 const cors_1 = __importDefault(require("cors"));
 const config_service_1 = require("./config/config.service");
 const global_error_handler_1 = require("./common/utilts/global-error-handler");
+const user_controller_1 = __importDefault(require("./modules/auth/user.controller"));
 const connectionDB_1 = __importDefault(require("./DB/connectionDB"));
 const redis_service_1 = __importDefault(require("./common/services/redis.service"));
 const s3_service_1 = require("./common/services/s3.service");
 const response_success_1 = require("./common/utilts/response.success");
 const promises_1 = require("node:stream/promises");
-const graphql_1 = require("graphql");
+const notification_service_1 = __importDefault(require("./common/services/notification.service"));
+const post_controller_1 = __importDefault(require("./modules/posts/post.controller"));
+const story_controller_1 = __importDefault(require("./modules/stories/story.controller"));
+const graphql_schema_js_1 = require("./modules/graphql/graphql.schema.js");
 const express_2 = require("graphql-http/lib/use/express");
 const port = config_service_1.PORT;
 const bootstrap = async () => {
@@ -58,61 +62,16 @@ const bootstrap = async () => {
     //   console.log({ user });
     // }
     // test();
-    const users = [
-        { id: 1, name: "Mohamed", age: 20 },
-        { id: 1, name: "Ahmed", age: 30 },
-        { id: 1, name: "Khaled", age: 25 },
-    ];
-    const userType = new graphql_1.GraphQLObjectType({
-        name: "getUser",
-        fields: {
-            id: { type: graphql_1.GraphQLInt },
-            name: { type: graphql_1.GraphQLString },
-            age: { type: graphql_1.GraphQLInt },
-        },
-    });
-    const schema = new graphql_1.GraphQLSchema({
-        query: new graphql_1.GraphQLObjectType({
-            name: "RootQueryType",
-            description: "query",
-            fields: {
-                // hello: {
-                //   type: GraphQLString,
-                //   resolve: () => {
-                //     return "Hello World";
-                //   },
-                // },
-                getUser: {
-                    type: userType,
-                    args: {
-                        name: { type: new graphql_1.GraphQLNonNull(graphql_1.GraphQLString) },
-                    },
-                    resolve: (parent, args) => {
-                        return users.find((user) => user.name == args.name);
-                    },
-                },
-                listUsers: {
-                    type: new graphql_1.GraphQLList(userType),
-                    resolve: () => {
-                        return users;
-                    },
-                },
+    app.use("/graphql", (0, express_2.createHandler)({ schema: graphql_schema_js_1.gql_schema, context: (req) => ({ req }) }));
+    app.get("/send-notification", async (req, res, next) => {
+        await notification_service_1.default.sentNotification({
+            token: req.body.token,
+            data: {
+                title: "Hello",
+                body: "Hiiiiiiii",
             },
-        }),
+        });
     });
-    app.use("/graphql", (0, express_2.createHandler)({ schema }));
-    // app.get(
-    //   "/send-notification",
-    //   async (req: Request, res: Response, next: NextFunction) => {
-    //     await notificationService.sentNotification({
-    //       token: req.body.token,
-    //       data: {
-    //         title: "Hello",
-    //         body: "Hiiiiiiii",
-    //       },
-    //     });
-    //   },
-    // );
     app.get("/upload/pre-signed/*path", async (req, res, next) => {
         const { path } = req.params;
         const { download } = req.query;
@@ -163,9 +122,9 @@ const bootstrap = async () => {
     });
     (0, connectionDB_1.default)();
     await redis_service_1.default.connect();
-    // app.use("/auth", authRouter);
-    // app.use("/post", postRouter);
-    // app.use("/story", storyRouter);
+    app.use("/auth", user_controller_1.default);
+    app.use("/post", post_controller_1.default);
+    app.use("/story", story_controller_1.default);
     app.use("{/*demo}", (req, res, next) => {
         // throw new Error(
         //   `Url ${req.originalUrl} with method ${req.method} not found`,

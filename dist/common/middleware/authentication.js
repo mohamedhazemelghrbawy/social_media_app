@@ -3,14 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authentication = void 0;
+exports.authentication_gql = exports.authentication = void 0;
 const config_service_1 = require("../../config/config.service");
 const token_service_1 = require("../utilts/token.service");
 const user_repository_1 = __importDefault(require("../../DB/repository/user.repository"));
 const global_error_handler_1 = require("../utilts/global-error-handler");
 const userServices = new user_repository_1.default();
-const authentication = async (req, res, next) => {
-    const { authorization } = req.headers;
+const validateToken = async (authorization) => {
     if (!authorization) {
         throw new global_error_handler_1.AppError("token not exist");
     }
@@ -39,10 +38,17 @@ const authentication = async (req, res, next) => {
         user.changeCredential.getTime() > decoded.iat * 1000) {
         throw new global_error_handler_1.AppError("token expired", 401);
     }
-    // res.locals.user = user;
-    // res.locals.decoded = decoded;
+    return { user, decoded };
+};
+const authentication = async (req, res, next) => {
+    const { authorization } = req.headers;
+    const { user, decoded } = await validateToken(authorization);
     req.user = user;
     req.decoded = decoded;
     next();
 };
 exports.authentication = authentication;
+const authentication_gql = async (authorization) => {
+    return await validateToken(authorization);
+};
+exports.authentication_gql = authentication_gql;

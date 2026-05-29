@@ -50,7 +50,7 @@ postRouter.post("/", authentication_1.authentication, (0, multer_cloud_js_1.defa
 postRouter.post("/:postId", authentication_1.authentication, (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.memory }).array("attachments"), (0, validation_js_1.validation)(postValidation.updatePostSchema), post_service_1.default.updatePost);
 postRouter.post("/:postId/like", authentication_1.authentication, (0, validation_js_1.validation)(postValidation.likePostSchema), post_service_1.default.likePost);
 postRouter.get("/", authentication_1.authentication, post_service_1.default.getPosts);
-postRouter.get("/post/:postId", authentication_1.authentication, post_service_1.default.getPost);
+postRouter.get("/:postId", authentication_1.authentication, post_service_1.default.getPost);
 postRouter.patch("/soft-delete/:postId", authentication_1.authentication, post_service_1.default.softDeletePost);
 postRouter.delete("/hard-delete/:postId", authentication_1.authentication, post_service_1.default.hardDeletePost);
 exports.default = postRouter;

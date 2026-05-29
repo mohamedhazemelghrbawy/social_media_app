@@ -48,22 +48,32 @@ authRouter.post("/signup", (0, validation_1.validation)(userValidation.signUpSch
 authRouter.post("/comfirm-email", (0, validation_1.validation)(userValidation.confirmEmailSchmea), user_service_1.default.confirmedEmail);
 authRouter.patch("/resent-otp", user_service_1.default.resendConfirmOtp);
 authRouter.post("/signup-with-gmail", user_service_1.default.signUpWithGmail);
-authRouter.post("/signin", (0, validation_1.validation)(userValidation.logInSchema), user_service_1.default.signIn);
+authRouter.post("/signin", 
+// validation(userValidation.logInSchema),
+user_service_1.default.signIn);
 authRouter.patch("/update-password", authentication_js_1.authentication, user_service_1.default.updatePassword);
 authRouter.post("/send-otp-forget-password", user_service_1.default.sendForgetOtp);
 authRouter.post("/forget-password", user_service_1.default.forgetPassword);
 authRouter.post("/logout", authentication_js_1.authentication, user_service_1.default.logout);
-authRouter.post("/upload-file", (0, multer_cloud_js_1.default)().single("attachment"), user_service_1.default.uploadfile);
-authRouter.post("/upload-large-file", (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.disk }).single("attachment"), user_service_1.default.uploadLargefile);
+authRouter.post("/upload-file", authentication_js_1.authentication, (0, multer_cloud_js_1.default)().single("attachment"), user_service_1.default.uploadfile);
+authRouter.post("/upload-large-file", authentication_js_1.authentication, (0, multer_cloud_js_1.default)({
+    store_type: mutlter_enum_js_1.Store_enum.disk,
+    custom_type: mutlter_enum_js_1.multer_enum.video,
+    maxFileSize: 30 * 1024 * 1024,
+}).single("attachment"), user_service_1.default.uploadLargefile);
 // authRouter.post(
 //   "/upload-large-file",
 //   multerCloud({ store_type: Store_enum.disk }).single("attachment"),
 //   UserService.uploadLargefile,
 // );
-authRouter.post("/upload-files", (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.disk }).array("attachments"), user_service_1.default.uploadfiles);
+authRouter.post("/upload-files", authentication_js_1.authentication, (0, multer_cloud_js_1.default)({
+    store_type: mutlter_enum_js_1.Store_enum.disk,
+}).array("attachments"), user_service_1.default.uploadfiles);
 authRouter.post("/upload", authentication_js_1.authentication, 
 // multerCloud({ store_type: Store_enum.disk }).single("attachment"),
 user_service_1.default.upload);
 authRouter.patch("/delete/:userId", authentication_js_1.authentication, user_service_1.default.softDeleteUser);
 authRouter.delete("/delete/:userId", authentication_js_1.authentication, user_service_1.default.softDeleteUser);
+authRouter.get("/getUser/:userId", user_service_1.default.getUser);
+authRouter.get("/getUsers", user_service_1.default.getUsers);
 exports.default = authRouter;

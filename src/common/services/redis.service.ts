@@ -151,6 +151,8 @@ class RedisService {
     return `user:FCM:${userId}`;
   }
 
+  //======== FCM ========
+
   async addFCM({
     userId,
     FCMToken,

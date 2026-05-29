@@ -10,7 +10,7 @@ class NotificationService {
       readFileSync(
         resolve(
           __dirname,
-          "../../../src/config/social-app-5fa50-firebase-adminsdk-fbsvc-4459bdc445.json",
+          "../../config/social-app-5fa50-firebase-adminsdk-fbsvc-4b962838d9.json",
         ),
       ) as unknown as string,
     );

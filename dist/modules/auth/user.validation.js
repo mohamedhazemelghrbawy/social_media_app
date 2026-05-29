@@ -33,9 +33,12 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.confirmEmailSchmea = exports.logInSchema = exports.signUpSchema = void 0;
+exports.confirmEmailSchmea = exports.logInSchema = exports.signUpSchema = exports.getUserSchema = void 0;
 const z = __importStar(require("zod"));
 const user_enum_1 = require("../../common/enum/user.enum");
+exports.getUserSchema = z.strictObject({
+    token: z.string(),
+});
 exports.signUpSchema = {
     body: z
         .object({

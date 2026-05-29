@@ -42,7 +42,7 @@ postRouter.get(
   postService.getPosts,
 );
 postRouter.get(
-  "/post/:postId",
+  "/:postId",
   authentication,
 
   postService.getPost,

@@ -8,7 +8,7 @@ const user_repository_1 = __importDefault(require("../../DB/repository/user.repo
 const redis_service_js_1 = __importDefault(require("../../common/services/redis.service.js"));
 const response_success_js_1 = require("../../common/utilts/response.success.js");
 const s3_service_js_1 = require("../../common/services/s3.service.js");
-// import notificationService from "../../common/services/notification.service.js";
+const notification_service_js_1 = __importDefault(require("../../common/services/notification.service.js"));
 const post_repository_js_1 = __importDefault(require("../../DB/repository/post.repository.js"));
 const comment_repository_js_1 = __importDefault(require("../../DB/repository/comment.repository.js"));
 const node_crypto_1 = require("node:crypto");
@@ -21,7 +21,7 @@ class commentService {
     _postRepo = new post_repository_js_1.default();
     _s3service = new s3_service_js_1.S3Service();
     _redisService = redis_service_js_1.default;
-    // private readonly _notificationService = notificationService;
+    _notificationService = notification_service_js_1.default;
     constructor() { }
     createComment = async (req, res, next) => {
         const { content, tags, onModel } = req.body;
@@ -106,15 +106,15 @@ class commentService {
             await this._s3service.deleteFiles(urls);
             throw new global_error_handler_js_1.AppError("fail to create comment");
         }
-        // if (fcmTokens?.length) {
-        //   await this._notificationService.sentNotifications({
-        //     tokens: fcmTokens,
-        //     data: {
-        //       title: `you are mention on new comment`,
-        //       body: content || "new comment",
-        //     },
-        //   });
-        // }
+        if (fcmTokens?.length) {
+            await this._notificationService.sentNotifications({
+                tokens: fcmTokens,
+                data: {
+                    title: `you are mention on new comment`,
+                    body: content || "new comment",
+                },
+            });
+        }
         (0, response_success_js_1.successResponse)({ res, data: comment });
     };
     softDeleteComment = async (req, res, next) => {

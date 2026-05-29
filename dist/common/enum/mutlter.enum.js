@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Store_enum = exports.multer_enum = void 0;
 exports.multer_enum = {
-    image: ["image/png", "image/jpng", "image/webp"],
+    image: ["image/png", "image/jpeg", "image/webp"],
     video: ["video/mp4"],
     pdf: ["application/pdf"],
 };

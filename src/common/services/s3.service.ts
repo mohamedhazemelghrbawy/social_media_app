@@ -105,19 +105,31 @@ export class S3Service {
     isLarge?: boolean;
   }) {
     let urls: string[] = [];
+
     if (isLarge) {
       urls = await Promise.all(
         files.map((file) => {
-          return this.uploadFile({ file, store_type, path, ACL });
+          return this.uploadLargeFile({
+            file,
+            store_type,
+            path,
+            ACL,
+          });
         }),
       );
     } else {
       urls = await Promise.all(
         files.map((file) => {
-          return this.uploadLargeFile({ file, store_type, path, ACL });
+          return this.uploadFile({
+            file,
+            store_type,
+            path,
+            ACL,
+          });
         }),
       );
     }
+
     return urls;
   }
   async createPreSignedUrl({

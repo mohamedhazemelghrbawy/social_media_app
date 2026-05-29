@@ -4,7 +4,7 @@ import { MONGO_URI } from "../config/config.service";
 
 const checkConnectionDB = async () => {
   try {
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect("mongodb://localhost:27017/social_app");
     console.log("Database connected successfully");
   } catch (error) {
     console.log(error, "DB connection faild");

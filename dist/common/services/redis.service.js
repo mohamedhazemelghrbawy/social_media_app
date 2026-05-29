@@ -135,6 +135,7 @@ class RedisService {
     key(userId) {
         return `user:FCM:${userId}`;
     }
+    //======== FCM ========
     async addFCM({ userId, FCMToken, }) {
         return await this.client.sAdd(this.key(userId), FCMToken);
     }

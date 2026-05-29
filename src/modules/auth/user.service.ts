@@ -12,7 +12,12 @@ import { emailTemplate } from "../../common/utilts/email/email.template";
 import redisService from "../../common/services/redis.service";
 import { randomUUID } from "crypto";
 import { generateToken } from "../../common/utilts/token.service";
-import { REFRESH_SECRET_KEY, SECRET_KEY } from "../../config/config.service";
+import {
+  AWS_BUCKET_NAME,
+  AWS_REGION,
+  REFRESH_SECRET_KEY,
+  SECRET_KEY,
+} from "../../config/config.service";
 import { S3Service } from "../../common/services/s3.service";
 import { sendOtp } from "../../common/utilts/email/otp.resend";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
@@ -152,7 +157,7 @@ class UserService {
     const { email, otp } = req.body;
 
     const otpExist = await redisService.get(
-      redisService.otp_key({ email, type: "signupOtp" }),
+      redisService.otp_key({ email, type: "confirmedEmail" }),
     );
     if (!otpExist) {
       throw new Error("otp exired or incorrect");
@@ -429,7 +434,8 @@ class UserService {
       file: req.file,
       path: "users",
     });
-
+    console.log(AWS_BUCKET_NAME);
+    console.log(AWS_REGION);
     successResponse({ res, data: key });
   };
 
@@ -449,6 +455,7 @@ class UserService {
     const urls = await this._s3Service.uploadFiles({
       files: req.files as Express.Multer.File[],
       path: "users/files",
+      store_type: Store_enum.disk,
     });
 
     successResponse({ res, data: urls });
@@ -528,11 +535,25 @@ class UserService {
   // ==============
 
   getUsers = async () => {
-    return await this._userModel.find({ filter: {} });
+    return await this._userModel.find({
+      filter: {},
+    });
   };
+  getUser = async (req: Request, res: Response) => {
+    const { userId } = req.params;
 
-  getUser = async (userId: Types.ObjectId) => {
-    return await this._userModel.find({ filter: { _id: userId } });
+    const user = await this._userModel.findOne({
+      filter: { _id: userId },
+    });
+    const posts = await this._userModel.find({
+      filter: {
+        createdBy: userId,
+      },
+    });
+    return successResponse({
+      res,
+      data: { user, posts },
+    });
   };
 }
 

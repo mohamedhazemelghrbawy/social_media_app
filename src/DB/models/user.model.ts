@@ -5,13 +5,7 @@ import {
   ProviderEnum,
 } from "../../common/enum/user.enum";
 import { Model } from "mongoose";
-import { eventEmitter } from "../../common/utilts/email/email.event.js";
-import {
-  generateOTP,
-  sendEmail,
-} from "../../common/utilts/email/send.email.js";
-import { emailTemplate } from "../../common/utilts/email/email.template.js";
-import { Hash } from "../../common/utilts/security/hash.security.js";
+
 import postModel from "./post.model.js";
 import CommentModel from "./comment.model.js";
 import StoryModel from "./story.model.js";

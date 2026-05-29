@@ -10,7 +10,7 @@ const redis_service_js_1 = __importDefault(require("../../common/services/redis.
 const response_success_js_1 = require("../../common/utilts/response.success.js");
 const s3_service_js_1 = require("../../common/services/s3.service.js");
 const mutlter_enum_js_1 = require("../../common/enum/mutlter.enum.js");
-// import notificationService from "../../common/services/notification.service.js";
+const notification_service_js_1 = __importDefault(require("../../common/services/notification.service.js"));
 const node_crypto_1 = require("node:crypto");
 const post_repository_js_1 = __importDefault(require("../../DB/repository/post.repository.js"));
 const post_utilts_js_1 = require("../../common/utilts/post.utilts.js");
@@ -21,7 +21,7 @@ class PostService {
     _commentRepo = new comment_repository_js_1.default();
     _s3service = new s3_service_js_1.S3Service();
     _redisService = redis_service_js_1.default;
-    // private readonly _notificationService = notificationService;
+    _notificationService = notification_service_js_1.default;
     constructor() { }
     createPost = async (req, res, next) => {
         const { content, allowComment, availability, tags } = req.body;
@@ -63,15 +63,15 @@ class PostService {
             await this._s3service.deleteFiles(urls);
             throw new global_error_handler_js_1.AppError("fail to create post");
         }
-        // if (fcmTokens?.length) {
-        //   await this._notificationService.sentNotifications({
-        //     tokens: fcmTokens,
-        //     data: {
-        //       title: `you are mention on new post`,
-        //       body: content || "new post",
-        //     },
-        //   });
-        // }
+        if (fcmTokens?.length) {
+            await this._notificationService.sentNotifications({
+                tokens: fcmTokens,
+                data: {
+                    title: `you are mention on new post`,
+                    body: content || "new post",
+                },
+            });
+        }
         (0, response_success_js_1.successResponse)({ res, data: post });
     };
     getPosts = async (req, res, next) => {
@@ -265,15 +265,15 @@ class PostService {
             });
             post.attachments?.push(...urls);
         }
-        // if (fcmTokens?.length) {
-        //   await this._notificationService.sentNotifications({
-        //     tokens: fcmTokens,
-        //     data: {
-        //       title: content || "new post",
-        //       body: `you are mention on new post`,
-        //     },
-        //   });
-        // }
+        if (fcmTokens?.length) {
+            await this._notificationService.sentNotifications({
+                tokens: fcmTokens,
+                data: {
+                    title: content || "new post",
+                    body: `you are mention on new post`,
+                },
+            });
+        }
         if (content) {
             post.content = content;
         }

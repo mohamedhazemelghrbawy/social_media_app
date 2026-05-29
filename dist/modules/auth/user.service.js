@@ -18,18 +18,24 @@ const config_service_1 = require("../../config/config.service");
 const s3_service_1 = require("../../common/services/s3.service");
 const otp_resend_1 = require("../../common/utilts/email/otp.resend");
 const google_auth_library_1 = require("google-auth-library");
-// import NotificationService from "../../common/services/notification.service";
+const mutlter_enum_js_1 = require("../../common/enum/mutlter.enum.js");
+const notification_service_1 = __importDefault(require("../../common/services/notification.service"));
 const post_model_js_1 = __importDefault(require("../../DB/models/post.model.js"));
 const post_repository_js_1 = __importDefault(require("../../DB/repository/post.repository.js"));
 const mongoose_1 = require("mongoose");
 const comment_model_js_1 = __importDefault(require("../../DB/models/comment.model.js"));
 const story_model_js_1 = __importDefault(require("../../DB/models/story.model.js"));
 // import { emit } from "cluster";
+const users = [
+    { id: 1, name: "Mohamed", age: 20 },
+    { id: 1, name: "Ahmed", age: 30 },
+    { id: 1, name: "Khaled", age: 25 },
+];
 class UserService {
     _userModel = new user_repository_1.default();
     _postRepo = new post_repository_js_1.default();
     _s3Service = new s3_service_1.S3Service();
-    // private readonly _notificationService = NotificationService;
+    _notificationService = notification_service_1.default;
     constructor() { }
     signUp = async (req, res, next) => {
         let { userName, email, password, cPassword, phone, address, age, gender } = req.body;
@@ -123,7 +129,7 @@ class UserService {
     };
     confirmedEmail = async (req, res, next) => {
         const { email, otp } = req.body;
-        const otpExist = await redis_service_1.default.get(redis_service_1.default.otp_key({ email, type: "signupOtp" }));
+        const otpExist = await redis_service_1.default.get(redis_service_1.default.otp_key({ email, type: "confirmedEmail" }));
         if (!otpExist) {
             throw new Error("otp exired or incorrect");
         }
@@ -215,17 +221,17 @@ class UserService {
             secret_key: config_service_1.REFRESH_SECRET_KEY,
             options: { expiresIn: "1y", jwtid },
         });
-        // if (fcm) {
-        //   await redisService.addFCM({ userId: user._id, FCMToken: fcm });
-        //   const tokens = await redisService.getFCMs(user._id);
-        //   await this._notificationService.sentNotifications({
-        //     tokens,
-        //     data: {
-        //       title: `hi ${user.firstName}`,
-        //       body: `new login at ${new Date()}`,
-        //     },
-        //   });
-        // }
+        if (fcm) {
+            await redis_service_1.default.addFCM({ userId: user._id, FCMToken: fcm });
+            const tokens = await redis_service_1.default.getFCMs(user._id);
+            await this._notificationService.sentNotifications({
+                tokens,
+                data: {
+                    title: `hi ${user.firstName}`,
+                    body: `new login at ${new Date()}`,
+                },
+            });
+        }
         // await redisService.deleteKey(redisService.max_password_key({ email }));
         // await redisService.deleteKey(redisService.block_password_key({ email }));
         (0, response_success_1.successResponse)({
@@ -349,6 +355,8 @@ class UserService {
             file: req.file,
             path: "users",
         });
+        console.log(config_service_1.AWS_BUCKET_NAME);
+        console.log(config_service_1.AWS_REGION);
         (0, response_success_1.successResponse)({ res, data: key });
     };
     uploadLargefile = async (req, res, next) => {
@@ -365,6 +373,7 @@ class UserService {
         const urls = await this._s3Service.uploadFiles({
             files: req.files,
             path: "users/files",
+            store_type: mutlter_enum_js_1.Store_enum.disk,
         });
         (0, response_success_1.successResponse)({ res, data: urls });
     };
@@ -426,6 +435,27 @@ class UserService {
         return (0, response_success_1.successResponse)({
             res,
             message: "User permanently deleted",
+        });
+    };
+    // ==============
+    getUsers = async () => {
+        return await this._userModel.find({
+            filter: {},
+        });
+    };
+    getUser = async (req, res) => {
+        const { userId } = req.params;
+        const user = await this._userModel.findOne({
+            filter: { _id: userId },
+        });
+        const posts = await this._userModel.find({
+            filter: {
+                createdBy: userId,
+            },
+        });
+        return (0, response_success_1.successResponse)({
+            res,
+            data: { user, posts },
         });
     };
 }
