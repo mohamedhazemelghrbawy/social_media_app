@@ -37,7 +37,7 @@ class UserFields {
                     await (0, validation_js_1.Validation_GQL)(user_validation_js_1.getUserSchema, args);
                     const { user } = await (0, authentication_js_1.authentication_gql)(args.token);
                     await (0, authorization_js_1.authorization_gql)(["user"], user?.role);
-                    return user_service_js_1.default.getUser(user._id);
+                    return user_service_js_1.default.getUserById(user._id);
                 },
             },
         };

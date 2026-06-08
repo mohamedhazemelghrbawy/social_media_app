@@ -43,7 +43,9 @@ const userValidation = __importStar(require("./user.validation"));
 const authentication_js_1 = require("../../common/middleware/authentication.js");
 const multer_cloud_js_1 = __importDefault(require("../../common/middleware/multer.cloud.js"));
 const mutlter_enum_js_1 = require("../../common/enum/mutlter.enum.js");
+const chat_controller_js_1 = __importDefault(require("../chat/chat.controller.js"));
 const authRouter = (0, express_1.Router)();
+authRouter.use("/:userId/chat", authentication_js_1.authentication, chat_controller_js_1.default);
 authRouter.post("/signup", (0, validation_1.validation)(userValidation.signUpSchema), user_service_1.default.signUp);
 authRouter.post("/comfirm-email", (0, validation_1.validation)(userValidation.confirmEmailSchmea), user_service_1.default.confirmedEmail);
 authRouter.patch("/resent-otp", user_service_1.default.resendConfirmOtp);
@@ -74,6 +76,7 @@ authRouter.post("/upload", authentication_js_1.authentication,
 user_service_1.default.upload);
 authRouter.patch("/delete/:userId", authentication_js_1.authentication, user_service_1.default.softDeleteUser);
 authRouter.delete("/delete/:userId", authentication_js_1.authentication, user_service_1.default.softDeleteUser);
+authRouter.get("/profile", authentication_js_1.authentication, user_service_1.default.getProfile);
 authRouter.get("/getUser/:userId", user_service_1.default.getUser);
 authRouter.get("/getUsers", user_service_1.default.getUsers);
 exports.default = authRouter;

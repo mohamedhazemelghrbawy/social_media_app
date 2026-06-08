@@ -21,6 +21,7 @@ const post_controller_1 = __importDefault(require("./modules/posts/post.controll
 const story_controller_1 = __importDefault(require("./modules/stories/story.controller"));
 const graphql_schema_js_1 = require("./modules/graphql/graphql.schema.js");
 const express_2 = require("graphql-http/lib/use/express");
+const socket_gatway_js_1 = __importDefault(require("./modules/realtime/socket.gatway.js"));
 const port = config_service_1.PORT;
 const bootstrap = async () => {
     const limiter = (0, express_rate_limit_1.rateLimit)({
@@ -133,8 +134,34 @@ const bootstrap = async () => {
         throw new global_error_handler_1.AppError(`Url ${req.originalUrl} with method ${req.method} not found`, 404);
     });
     app.use(global_error_handler_1.globalErrorHandler);
-    app.listen(port, () => {
-        console.log(`server is running on port ${port}`);
+    const httpServer = app.listen(port, () => {
+        console.log(`server is running on port ${port} `);
     });
+    socket_gatway_js_1.default.initIo(httpServer);
+    // const httpServer = app.listen(port, () => {
+    //   console.log(`server is running on port ${port}`);
+    // });
+    // const io = new Server(httpServer, {
+    //   cors: {
+    //     origin: "*",
+    //   },
+    // });
+    // io.use(async (socket, next) => {
+    //   try {
+    //     console.log("socket");
+    //     const { user } = await decodeToken_and_fetchUser(
+    //       socket.handshake.auth.authorization,
+    //     );
+    //     socket.data.user = user;
+    //     console.log("user");
+    //   } catch (error: any) {
+    //     next(error);
+    //   }
+    //   next();
+    // });
+    // io.on("connection", (socket) => {
+    //   console.log(socket.id);
+    //   console.log(socket.data.user);
+    // });
 };
 exports.default = bootstrap;

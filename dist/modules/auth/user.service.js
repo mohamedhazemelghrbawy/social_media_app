@@ -38,7 +38,7 @@ class UserService {
     _notificationService = notification_service_1.default;
     constructor() { }
     signUp = async (req, res, next) => {
-        let { userName, email, password, cPassword, phone, address, age, gender } = req.body;
+        let { userName, email, password, cPassword, phone, address, age, gender, friends, } = req.body;
         await this._userModel.checkUser(email);
         const user = await this._userModel.create({
             userName,
@@ -48,6 +48,7 @@ class UserService {
             address,
             age,
             gender,
+            friends,
         });
         console.log(3);
         const otp = await (0, send_email_1.generateOTP)();
@@ -184,7 +185,7 @@ class UserService {
         (0, response_success_1.successResponse)({ res, message: "OTP resent successfully" });
     };
     signIn = async (req, res, next) => {
-        let { email, password, fcm } = req.body;
+        let { email, password } = req.body;
         const user = await this._userModel.findOne({ filter: { email } });
         if (!user) {
             throw new global_error_handler_1.AppError("Email is not exist");
@@ -221,22 +222,22 @@ class UserService {
             secret_key: config_service_1.REFRESH_SECRET_KEY,
             options: { expiresIn: "1y", jwtid },
         });
-        if (fcm) {
-            await redis_service_1.default.addFCM({ userId: user._id, FCMToken: fcm });
-            const tokens = await redis_service_1.default.getFCMs(user._id);
-            await this._notificationService.sentNotifications({
-                tokens,
-                data: {
-                    title: `hi ${user.firstName}`,
-                    body: `new login at ${new Date()}`,
-                },
-            });
-        }
+        // if (fcm) {
+        //   await redisService.addFCM({ userId: user._id, FCMToken: fcm });
+        //   const tokens = await redisService.getFCMs(user._id);
+        //   await this._notificationService.sentNotifications({
+        //     tokens,
+        //     data: {
+        //       title: `hi ${user.firstName}`,
+        //       body: `new login at ${new Date()}`,
+        //     },
+        //   });
+        // }
         // await redisService.deleteKey(redisService.max_password_key({ email }));
         // await redisService.deleteKey(redisService.block_password_key({ email }));
         (0, response_success_1.successResponse)({
             res,
-            message: "user signed in successfully",
+            message: "Done",
             data: {
                 user,
                 access_token,
@@ -443,6 +444,23 @@ class UserService {
             filter: {},
         });
     };
+    getUserById = async (userId) => {
+        const user = await this._userModel.findOne({
+            filter: { _id: userId },
+            options: {
+                populate: "friends",
+            },
+        });
+        const posts = await this._postRepo.find({
+            filter: {
+                createdBy: userId,
+            },
+        });
+        return {
+            user,
+            posts,
+        };
+    };
     getUser = async (req, res) => {
         const { userId } = req.params;
         const user = await this._userModel.findOne({
@@ -456,6 +474,25 @@ class UserService {
         return (0, response_success_1.successResponse)({
             res,
             data: { user, posts },
+        });
+    };
+    getProfile = async (req, res) => {
+        const user = await this._userModel.findOne({
+            filter: { _id: req.user?._id },
+            options: {
+                populate: [
+                    {
+                        path: "friends",
+                    },
+                ],
+            },
+        });
+        console.log("REQ USER:", req.user);
+        console.log("USER FROM API:", { user });
+        console.log("FRIENDS:", user?.friends);
+        return (0, response_success_1.successResponse)({
+            res,
+            data: { user },
         });
     };
 }

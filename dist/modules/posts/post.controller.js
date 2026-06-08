@@ -47,7 +47,7 @@ const comment_controller_js_1 = __importDefault(require("../comments/comment.con
 const postRouter = (0, express_1.Router)();
 postRouter.use("/:postId/comments{/:commentId,replies}", comment_controller_js_1.default);
 postRouter.post("/", authentication_1.authentication, (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.memory }).array("attachments"), (0, validation_js_1.validation)(postValidation.createPostSchema), post_service_1.default.createPost);
-postRouter.post("/:postId", authentication_1.authentication, (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.memory }).array("attachments"), (0, validation_js_1.validation)(postValidation.updatePostSchema), post_service_1.default.updatePost);
+postRouter.post("/update/:postId", authentication_1.authentication, (0, multer_cloud_js_1.default)({ store_type: mutlter_enum_js_1.Store_enum.memory }).array("attachments"), (0, validation_js_1.validation)(postValidation.updatePostSchema), post_service_1.default.updatePost);
 postRouter.post("/:postId/like", authentication_1.authentication, (0, validation_js_1.validation)(postValidation.likePostSchema), post_service_1.default.likePost);
 postRouter.get("/", authentication_1.authentication, post_service_1.default.getPosts);
 postRouter.get("/:postId", authentication_1.authentication, post_service_1.default.getPost);

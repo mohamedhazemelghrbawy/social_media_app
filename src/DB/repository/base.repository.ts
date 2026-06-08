@@ -51,7 +51,7 @@ abstract class BaseRepository<TDocument> {
     options,
   }: {
     filter: QueryFilter<TDocument>;
-    update: Partial<TDocument>;
+    update: any;
     options?: QueryOptions;
   }): Promise<HydratedDocument<TDocument> | null> {
     return this.model.findOneAndUpdate(filter, update, {

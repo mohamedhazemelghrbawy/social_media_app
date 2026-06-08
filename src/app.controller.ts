@@ -25,7 +25,12 @@ import postRouter from "./modules/posts/post.controller";
 import storyRouter from "./modules/stories/story.controller";
 import { gql_schema } from "./modules/graphql/graphql.schema.js";
 import { createHandler } from "graphql-http/lib/use/express";
-import { authentication } from "./common/middleware/authentication.js";
+import {
+  authentication,
+  decodeToken_and_fetchUser,
+} from "./common/middleware/authentication.js";
+import { Server } from "socket.io";
+import socketGatway from "./modules/realtime/socket.gatway.js";
 
 const port = PORT;
 const bootstrap = async () => {
@@ -197,8 +202,40 @@ const bootstrap = async () => {
   });
   app.use(globalErrorHandler);
 
-  app.listen(port, () => {
-    console.log(`server is running on port ${port}`);
+  const httpServer = app.listen(port, () => {
+    console.log(`server is running on port ${port} `);
   });
+
+  socketGatway.initIo(httpServer);
+
+  // const httpServer = app.listen(port, () => {
+  //   console.log(`server is running on port ${port}`);
+  // });
+
+  // const io = new Server(httpServer, {
+  //   cors: {
+  //     origin: "*",
+  //   },
+  // });
+
+  // io.use(async (socket, next) => {
+  //   try {
+  //     console.log("socket");
+  //     const { user } = await decodeToken_and_fetchUser(
+  //       socket.handshake.auth.authorization,
+  //     );
+  //     socket.data.user = user;
+  //     console.log("user");
+  //   } catch (error: any) {
+  //     next(error);
+  //   }
+
+  //   next();
+  // });
+
+  // io.on("connection", (socket) => {
+  //   console.log(socket.id);
+  //   console.log(socket.data.user);
+  // });
 };
 export default bootstrap;

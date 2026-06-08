@@ -20,7 +20,7 @@ postRouter.post(
 );
 
 postRouter.post(
-  "/:postId",
+  "/update/:postId",
   authentication,
   multerCloud({ store_type: Store_enum.memory }).array("attachments"),
   validation(postValidation.updatePostSchema),

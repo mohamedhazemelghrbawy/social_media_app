@@ -16,8 +16,8 @@ export interface IPost {
 
   allowComment?: Allow_Comment_Enum;
   availability?: Availability_Enum;
-  deletedAt?: Date;
-  deletedBy: Types.ObjectId;
+  deletedAt?: Date | null;
+  deletedBy?: Types.ObjectId | null;
   isDeleted: boolean;
   folderId: string;
 }

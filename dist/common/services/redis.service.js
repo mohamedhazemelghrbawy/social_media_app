@@ -40,6 +40,9 @@ class RedisService {
     block_password_key({ email }) {
         return `password::${email}::block`;
     }
+    socketKey(userId) {
+        return `user:SOCKET:${userId}`;
+    }
     async setValue({ key, value, ttl }) {
         try {
             const data = typeof value === "string" ? value : JSON.stringify(value);
@@ -150,6 +153,16 @@ class RedisService {
     }
     async removeFCMUser(userId) {
         return await this.client.del(this.key(userId));
+    }
+    // socket redis
+    async addSocket({ userId, SocketId, }) {
+        return await this.client.sAdd(this.socketKey(userId), SocketId);
+    }
+    async removeSocket({ userId, SocketId, }) {
+        return await this.client.sRem(this.socketKey(userId), SocketId);
+    }
+    async getSockets(userId) {
+        return await this.client.sMembers(this.socketKey(userId));
     }
 }
 exports.default = new RedisService();

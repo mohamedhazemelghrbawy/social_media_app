@@ -44,9 +44,12 @@ export class UserFields {
         args: { token: { type: new GraphQLNonNull(GraphQLString) } },
         resolve: async (parent: any, args: any, context: any) => {
           await Validation_GQL(getUserSchema, args);
+
           const { user } = await authentication_gql(args.token);
+
           await authorization_gql(["user"], user?.role!);
-          return userService.getUser(user._id);
+
+          return userService.getUserById(user._id);
         },
       },
     };

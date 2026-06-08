@@ -37,6 +37,9 @@ class PostService {
                 throw new global_error_handler_js_1.AppError("inValid tag id");
             }
             for (const tag of mentionsTags) {
+                if (tag._id.toString() === req.user?._id.toString()) {
+                    throw new global_error_handler_js_1.AppError("You can not mention yourself");
+                }
                 mentions.push(tag._id);
                 (await this._redisService.getFCMs(tag._id)).map((token) => fcmTokens.push(token));
             }
@@ -101,7 +104,7 @@ class PostService {
             options: {
                 populate: [
                     {
-                        path: "comments",
+                        path: "Comments",
                         match: {
                             refId: { $exists: false },
                         },

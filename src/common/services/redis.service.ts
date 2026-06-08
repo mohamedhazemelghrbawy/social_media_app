@@ -59,6 +59,10 @@ class RedisService {
     return `password::${email}::block`;
   }
 
+  socketKey(userId: Types.ObjectId) {
+    return `user:SOCKET:${userId}`;
+  }
+
   async setValue({ key, value, ttl }: IValue) {
     try {
       const data = typeof value === "string" ? value : JSON.stringify(value);
@@ -103,6 +107,7 @@ class RedisService {
       throw new AppError("error to get ttl data in redis", 500);
     }
   }
+
   async expire(key: string, ttl: number) {
     try {
       return await this.client.expire(key, ttl);
@@ -184,6 +189,40 @@ class RedisService {
   async removeFCMUser(userId: Types.ObjectId) {
     return await this.client.del(this.key(userId));
   }
+
+  // socket redis
+
+  async addSocket({
+    userId,
+    SocketId,
+  }: {
+    userId: Types.ObjectId;
+    SocketId: string;
+  }) {
+    return await this.client.sAdd(this.socketKey(userId), SocketId);
+  }
+
+  async removeSocket({
+    userId,
+    SocketId,
+  }: {
+    userId: Types.ObjectId;
+    SocketId: string;
+  }) {
+    return await this.client.sRem(this.socketKey(userId), SocketId);
+  }
+
+  async getSockets(userId: Types.ObjectId) {
+    return await this.client.sMembers(this.socketKey(userId));
+  }
+
+  // async hasSockets(userId: Types.ObjectId) {
+  //   return await this.client.sCard(this.socketKey(userId));
+  // }
+
+  // async removeSocketUser(userId: Types.ObjectId) {
+  //   return await this.client.del(this.socketKey(userId));
+  // }
 }
 
 export default new RedisService();

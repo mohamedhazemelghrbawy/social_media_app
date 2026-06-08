@@ -6,8 +6,11 @@ import * as userValidation from "./user.validation";
 import { authentication } from "../../common/middleware/authentication.js";
 import multerCloud from "../../common/middleware/multer.cloud.js";
 import { multer_enum, Store_enum } from "../../common/enum/mutlter.enum.js";
+import chatRouter from "../chat/chat.controller.js";
 
 const authRouter = Router();
+
+authRouter.use("/:userId/chat", authentication, chatRouter);
 
 authRouter.post(
   "/signup",
@@ -89,6 +92,7 @@ authRouter.delete(
   authentication,
   UserService.softDeleteUser,
 );
+authRouter.get("/profile", authentication, UserService.getProfile);
 authRouter.get("/getUser/:userId", UserService.getUser);
 authRouter.get("/getUsers", UserService.getUsers);
 

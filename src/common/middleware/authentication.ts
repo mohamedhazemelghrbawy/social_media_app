@@ -27,8 +27,9 @@ type TDecoded = {
   iat: number;
 };
 
-const validateToken = async (authorization: string) => {
-  if (!authorization) {
+export const decodeToken_and_fetchUser = async (authorization: string) => {
+  console.log("AUTH INPUT:", authorization);
+  if (!authorization || authorization == null) {
     throw new AppError("token not exist");
   }
 
@@ -77,7 +78,7 @@ export const authentication = async (
 ) => {
   const { authorization } = req.headers;
 
-  const { user, decoded } = await validateToken(authorization as string);
+  const { user, decoded } = await decodeToken_and_fetchUser(authorization!);
 
   req.user = user;
   req.decoded = decoded;
@@ -86,5 +87,5 @@ export const authentication = async (
 };
 
 export const authentication_gql = async (authorization: string) => {
-  return await validateToken(authorization);
+  return await decodeToken_and_fetchUser(authorization);
 };

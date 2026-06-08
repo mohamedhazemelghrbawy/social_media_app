@@ -46,8 +46,17 @@ class UserService {
   constructor() {}
 
   signUp = async (req: Request, res: Response, next: NextFunction) => {
-    let { userName, email, password, cPassword, phone, address, age, gender } =
-      req.body;
+    let {
+      userName,
+      email,
+      password,
+      cPassword,
+      phone,
+      address,
+      age,
+      gender,
+      friends,
+    } = req.body;
 
     await this._userModel.checkUser(email);
 
@@ -59,6 +68,7 @@ class UserService {
       address,
       age,
       gender,
+      friends,
     } as Partial<IUser>);
     console.log(3);
     const otp = await generateOTP();
@@ -225,7 +235,7 @@ class UserService {
   };
 
   signIn = async (req: Request, res: Response, next: NextFunction) => {
-    let { email, password, fcm } = req.body;
+    let { email, password } = req.body;
 
     const user = await this._userModel.findOne({ filter: { email } });
 
@@ -280,24 +290,24 @@ class UserService {
       options: { expiresIn: "1y", jwtid },
     });
 
-    if (fcm) {
-      await redisService.addFCM({ userId: user._id, FCMToken: fcm });
-      const tokens = await redisService.getFCMs(user._id);
-      await this._notificationService.sentNotifications({
-        tokens,
-        data: {
-          title: `hi ${user.firstName}`,
-          body: `new login at ${new Date()}`,
-        },
-      });
-    }
+    // if (fcm) {
+    //   await redisService.addFCM({ userId: user._id, FCMToken: fcm });
+    //   const tokens = await redisService.getFCMs(user._id);
+    //   await this._notificationService.sentNotifications({
+    //     tokens,
+    //     data: {
+    //       title: `hi ${user.firstName}`,
+    //       body: `new login at ${new Date()}`,
+    //     },
+    //   });
+    // }
 
     // await redisService.deleteKey(redisService.max_password_key({ email }));
     // await redisService.deleteKey(redisService.block_password_key({ email }));
 
     successResponse({
       res,
-      message: "user signed in successfully",
+      message: "Done",
       data: {
         user,
         access_token,
@@ -539,6 +549,25 @@ class UserService {
       filter: {},
     });
   };
+  getUserById = async (userId: Types.ObjectId) => {
+    const user = await this._userModel.findOne({
+      filter: { _id: userId },
+      options: {
+        populate: "friends",
+      },
+    });
+
+    const posts = await this._postRepo.find({
+      filter: {
+        createdBy: userId,
+      },
+    });
+
+    return {
+      user,
+      posts,
+    };
+  };
   getUser = async (req: Request, res: Response) => {
     const { userId } = req.params;
 
@@ -553,6 +582,25 @@ class UserService {
     return successResponse({
       res,
       data: { user, posts },
+    });
+  };
+  getProfile = async (req: Request, res: Response) => {
+    const user = await this._userModel.findOne({
+      filter: { _id: req.user?._id as Types.ObjectId },
+      options: {
+        populate: [
+          {
+            path: "friends",
+          },
+        ],
+      },
+    });
+    console.log("REQ USER:", req.user);
+    console.log("USER FROM API:", { user });
+    console.log("FRIENDS:", user?.friends);
+    return successResponse({
+      res,
+      data: { user },
     });
   };
 }
