@@ -19,6 +19,6 @@ export const globalErrorHandler = (
 ) => {
   console.log(err.cause);
   res
-    .status((err.cause as number) || 500)
+    .status((err.statusCode as number) || 500)
     .json({ message: err.message, stack: err.stack });
 };

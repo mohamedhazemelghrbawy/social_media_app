@@ -15,7 +15,7 @@ class ChatService {
 
   //rest api
   getChat = async (req: Request, res: Response) => {
-    const { userId } = req.params;
+    const { userId } = req.params as any;
 
     let chat = await this._chatRepo.findOne({
       filter: {
@@ -36,7 +36,11 @@ class ChatService {
     console.log("chat:", { chat });
 
     if (!chat) {
-      throw new AppError("Chat not Exist");
+      chat = await this._chatRepo.create({
+        participants: [req.user!._id, userId],
+        createdBy: req.user!._id,
+        messages: [],
+      });
     }
 
     successResponse({

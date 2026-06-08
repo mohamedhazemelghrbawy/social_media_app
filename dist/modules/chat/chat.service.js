@@ -32,7 +32,11 @@ class ChatService {
         });
         console.log("chat:", { chat });
         if (!chat) {
-            throw new global_error_handler_js_1.AppError("Chat not Exist");
+            chat = await this._chatRepo.create({
+                participants: [req.user._id, userId],
+                createdBy: req.user._id,
+                messages: [],
+            });
         }
         (0, response_success_js_1.successResponse)({
             res,

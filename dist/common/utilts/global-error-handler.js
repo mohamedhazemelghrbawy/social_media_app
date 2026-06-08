@@ -16,7 +16,7 @@ exports.AppError = AppError;
 const globalErrorHandler = (err, req, res, next) => {
     console.log(err.cause);
     res
-        .status(err.cause || 500)
+        .status(err.statusCode || 500)
         .json({ message: err.message, stack: err.stack });
 };
 exports.globalErrorHandler = globalErrorHandler;
